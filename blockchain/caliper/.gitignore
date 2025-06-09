@@ -1,0 +1,7 @@
+caliper-benchmarks-local/src/fabric/samples/fabcar/go/vendor
+crypto-config/*
+caliper-benchmarks-local/node_modules
+caliper-benchmarks-local/src/fabric/samples/fabcar/go/go.sum
+caliper-benchmarks-local/networks/fabric/standard/crypto-config
+caliper-benchmarks-local/networks/fabric/standard-v2.1/crypto-config
+*.gz
