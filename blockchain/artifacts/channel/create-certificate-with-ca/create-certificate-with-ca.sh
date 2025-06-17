@@ -37,7 +37,9 @@ createcertificatesForOrg1() {
   echo
   echo "Register the org admin"
   echo
-  fabric-ca-client register --caname ca.org1.example.com --id.name org1admin --id.secret org1adminpw --id.type admin --tls.certfiles ${PWD}/fabric-ca/org1/tls-cert.pem
+  fabric-ca-client register --caname ca.org1.example.com --id.name org1admin --id.secret org1adminpw --id.type admin --id.attrs "role=doctor" --tls.certfiles ${PWD}/fabric-ca/org1/tls-cert.pem
+
+
 
   mkdir -p ../crypto-config/peerOrganizations/org1.example.com/peers
 
@@ -85,7 +87,7 @@ createcertificatesForOrg1() {
   echo
   echo "## Generate the org admin msp"
   echo
-  fabric-ca-client enroll -u https://org1admin:org1adminpw@localhost:7054 --caname ca.org1.example.com -M ${PWD}/../crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp --tls.certfiles ${PWD}/fabric-ca/org1/tls-cert.pem
+  fabric-ca-client enroll -u https://org1admin:org1adminpw@localhost:7054 --caname ca.org1.example.com -M ${PWD}/../crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp --enrollment.attrs "role" --tls.certfiles ${PWD}/fabric-ca/org1/tls-cert.pem
   cp ${PWD}/../crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/* ${PWD}/../crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/priv_sk
   cp ${PWD}/../crypto-config/peerOrganizations/org1.example.com/msp/config.yaml ${PWD}/../crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/config.yaml
 
@@ -138,9 +140,8 @@ createCertificatesForOrg2() {
   echo "Register the org admin"
   echo
    
-  fabric-ca-client register --caname ca.org2.example.com --id.name org2admin --id.secret org2adminpw --id.type admin --tls.certfiles ${PWD}/fabric-ca/org2/tls-cert.pem
-   
-
+  fabric-ca-client register --caname ca.org2.example.com --id.name org2admin --id.secret org2adminpw --id.type admin --id.attrs "role=patient" --tls.certfiles ${PWD}/fabric-ca/org2/tls-cert.pem
+  
   mkdir -p ../crypto-config/peerOrganizations/org2.example.com/peers
   mkdir -p ../crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com
 
@@ -193,7 +194,7 @@ createCertificatesForOrg2() {
   echo "## Generate the org admin msp"
   echo
    
-  fabric-ca-client enroll -u https://org2admin:org2adminpw@localhost:8054 --caname ca.org2.example.com -M ${PWD}/../crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp --tls.certfiles ${PWD}/fabric-ca/org2/tls-cert.pem
+  fabric-ca-client enroll -u https://org2admin:org2adminpw@localhost:8054 --caname ca.org2.example.com -M ${PWD}/../crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp --enrollment.attrs "role"  --tls.certfiles ${PWD}/fabric-ca/org2/tls-cert.pem
   cp ${PWD}/../crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/* ${PWD}/../crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/priv_sk
 
   cp ${PWD}/../crypto-config/peerOrganizations/org2.example.com/msp/config.yaml ${PWD}/../crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/config.yaml

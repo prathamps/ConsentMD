@@ -1,6 +1,6 @@
 'use strict';
 
-const agreement = require('./lib/agreement');
+const MedicalConsentContract = require('./lib/MedicalConsentContract');
 
-module.exports.AssetTransfer = agreement;
-module.exports.contracts = [agreement];
+module.exports.MedicalConsentContract = MedicalConsentContract;
+module.exports.contracts = [MedicalConsentContract];

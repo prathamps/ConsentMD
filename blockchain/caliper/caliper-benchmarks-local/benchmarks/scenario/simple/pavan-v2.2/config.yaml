@@ -10,7 +10,7 @@ test:
         opts:
           tps: 30
       workload:
-        module: benchmarks/scenario/simple/standard-v2.2/createIOTData.js
+        module: benchmarks/scenario/simple/opusdei-v2.2/createIOTData.js
     # - label: Create Sensor Data 2
     #   txNumber: 200
     #   rateControl:
@@ -18,23 +18,23 @@ test:
     #     opts:
     #       tps: 20
     #   workload:
-    #       module: benchmarks/scenario/simple/standard-v2.2/createIOTData.js
-    - label: Create Patient Data
+    #       module: benchmarks/scenario/simple/opusdei-v2.2/createIOTData.js
+    - label: Create Patient Data 
       txNumber: 2000
       rateControl:
         type: fixed-rate
         opts:
           tps: 100
       workload:
-        module: benchmarks/scenario/simple/standard-v2.2/createPatient.js
-    - label: Get Patient Data
+          module: benchmarks/scenario/simple/opusdei-v2.2/createPatient.js
+    - label: Get Patient Data 
       txNumber: 2000
       rateControl:
         type: fixed-rate
         opts:
           tps: 150
       workload:
-        module: benchmarks/scenario/simple/standard-v2.2/queryPatient.js
+          module: benchmarks/scenario/simple/opusdei-v2.2/queryPatient.js
 
     # - label: Create Car 2
     #   txNumber: 600
@@ -43,7 +43,7 @@ test:
     #     opts:
     #       tps: 150
     #   workload:
-    #     module: benchmarks/scenario/simple/standard-v2.2/createCar.js
+    #     module: benchmarks/scenario/simple/opusdei-v2.2/createCar.js
     # - label: Create Car 3
     #   txNumber: 600
     #   rateControl:
@@ -51,7 +51,7 @@ test:
     #     opts:
     #       tps: 150
     #   workload:
-    #     module: benchmarks/scenario/simple/standard-v2.2/createCar.js
+    #     module: benchmarks/scenario/simple/opusdei-v2.2/createCar.js
     # - label: Create Car 4
     #   txNumber: 600
     #   rateControl:
@@ -59,7 +59,7 @@ test:
     #     opts:
     #       tps: 150
     #   workload:
-    #     module: benchmarks/scenario/simple/standard-v2.2/createCar.js
+    #     module: benchmarks/scenario/simple/opusdei-v2.2/createCar.js
     # - label: Create Car 5
     #   txNumber: 600
     #   rateControl:
@@ -67,7 +67,7 @@ test:
     #     opts:
     #       tps: 150
     #   workload:
-    #     module: benchmarks/scenario/simple/standard-v2.2/createCar.js
+    #     module: benchmarks/scenario/simple/opusdei-v2.2/createCar.js
     # - label: Create Car 6
     #   txNumber: 600
     #   rateControl:
@@ -75,4 +75,4 @@ test:
     #     opts:
     #       tps: 150
     #   workload:
-    #     module: benchmarks/scenario/simple/standard-v2.2/createCar.js
+    #     module: benchmarks/scenario/simple/opusdei-v2.2/createCar.js

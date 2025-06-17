@@ -1,6 +1,0 @@
-{
-  "index": { "fields": ["updatedAt"] },
-  "ddoc": "indexEndDate",
-  "name": "updated_at",
-  "type": "json"
-}

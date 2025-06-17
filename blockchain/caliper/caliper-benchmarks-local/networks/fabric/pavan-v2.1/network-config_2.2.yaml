@@ -21,9 +21,9 @@ clients:
         cryptoStore:
           path: /tmp/hfc-cvs/org1
       clientPrivateKey:
-        path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore/priv_sk
+        path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore/priv_sk
       clientSignedCert:
-        path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/cert.pem
+        path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/cert.pem
 
   client0.org2.example.com:
     client:
@@ -33,10 +33,10 @@ clients:
         cryptoStore:
           path: /tmp/hfc-cvs/org2
       clientPrivateKey:
-        path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/keystore/priv_sk
+        path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/keystore/priv_sk
       clientSignedCert:
-        path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/cert.pem
-
+        path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/cert.pem
+  
   client0.org3.example.com:
     client:
       organization: Org3
@@ -45,10 +45,10 @@ clients:
         cryptoStore:
           path: /tmp/hfc-cvs/org3
       clientPrivateKey:
-        path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org3.example.com/users/User1@org3.example.com/msp/keystore/priv_sk
+        path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org3.example.com/users/User1@org3.example.com/msp/keystore/priv_sk
       clientSignedCert:
-        path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org3.example.com/users/User1@org3.example.com/msp/signcerts/cert.pem
-
+        path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org3.example.com/users/User1@org3.example.com/msp/signcerts/cert.pem
+  
   # client0.org4.example.com:
   #   client:
   #     organization: Org4
@@ -57,9 +57,9 @@ clients:
   #       cryptoStore:
   #         path: /tmp/hfc-cvs/org4
   #     clientPrivateKey:
-  #       path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org4.example.com/users/User1@org4.example.com/msp/keystore/priv_sk
+  #       path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org4.example.com/users/User1@org4.example.com/msp/keystore/priv_sk
   #     clientSignedCert:
-  #       path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org4.example.com/users/User1@org4.example.com/msp/signcerts/cert.pem
+  #       path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org4.example.com/users/User1@org4.example.com/msp/signcerts/cert.pem
 
   # client0.org5.example.com:
   #   client:
@@ -69,13 +69,13 @@ clients:
   #       cryptoStore:
   #         path: /tmp/hfc-cvs/org5
   #     clientPrivateKey:
-  #       path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org5.example.com/users/User1@org5.example.com/msp/keystore/priv_sk
+  #       path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org5.example.com/users/User1@org5.example.com/msp/keystore/priv_sk
   #     clientSignedCert:
-  #       path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org5.example.com/users/User1@org5.example.com/msp/signcerts/cert.pem
+  #       path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org5.example.com/users/User1@org5.example.com/msp/signcerts/cert.pem
 
 channels:
   mychannel:
-    # configBinary: networks/fabric/standard-v2.1/mychannel.tx
+    # configBinary: networks/fabric/opusdei-v2.1/mychannel.tx
     created: true
     contracts: [{ "id": "fabcar", "version": "1" }]
     definition:
@@ -107,9 +107,9 @@ organizations:
     certificateAuthorities:
       - ca.org1.example.com
     adminPrivateKey:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/priv_sk
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/priv_sk
     signedCert:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/cert.pem
 
   Org2:
     mspid: Org2MSP
@@ -118,9 +118,9 @@ organizations:
     certificateAuthorities:
       - ca.org2.example.com
     adminPrivateKey:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/priv_sk
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/priv_sk
     signedCert:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts/cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts/cert.pem
 
   Org3:
     mspid: Org3MSP
@@ -129,9 +129,9 @@ organizations:
     certificateAuthorities:
       - ca.org3.example.com
     adminPrivateKey:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp/keystore/priv_sk
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp/keystore/priv_sk
     signedCert:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp/signcerts/cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org3.example.com/users/Admin@org3.example.com/msp/signcerts/cert.pem
 
   # Org4:
   #   mspid: Org4MSP
@@ -140,9 +140,9 @@ organizations:
   #   certificateAuthorities:
   #     - ca.org4.example.com
   #   adminPrivateKey:
-  #     path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org4.example.com/users/Admin@org4.example.com/msp/keystore/priv_sk
+  #     path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org4.example.com/users/Admin@org4.example.com/msp/keystore/priv_sk
   #   signedCert:
-  #     path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org4.example.com/users/Admin@org4.example.com/msp/signcerts/cert.pem
+  #     path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org4.example.com/users/Admin@org4.example.com/msp/signcerts/cert.pem
 
   # Org5:
   #   mspid: Org5MSP
@@ -151,9 +151,9 @@ organizations:
   #   certificateAuthorities:
   #     - ca.org5.example.com
   #   adminPrivateKey:
-  #     path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org5.example.com/users/Admin@org5.example.com/msp/keystore/priv_sk
+  #     path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org5.example.com/users/Admin@org5.example.com/msp/keystore/priv_sk
   #   signedCert:
-  #     path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org5.example.com/users/Admin@org5.example.com/msp/signcerts/cert.pem
+  #     path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org5.example.com/users/Admin@org5.example.com/msp/signcerts/cert.pem
 
 orderers:
   orderer.example.com:
@@ -161,19 +161,19 @@ orderers:
     grpcOptions:
       ssl-target-name-override: orderer.example.com
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
   orderer2.example.com:
     url: grpcs://localhost:8050
     grpcOptions:
       ssl-target-name-override: orderer2.example.com
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
   orderer3.example.com:
     url: grpcs://localhost:9050
     grpcOptions:
       ssl-target-name-override: orderer3.example.com
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 
 peers:
   peer0.org1.example.com:
@@ -182,7 +182,7 @@ peers:
       ssl-target-name-override: peer0.org1.example.com
       grpc.keepalive_time_ms: 600000
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/tlscacerts/tls-localhost-7054-ca-org1-example-com.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/tlscacerts/tls-localhost-7054-ca-org1-example-com.pem
 
   peer0.org2.example.com:
     url: grpcs://localhost:9051
@@ -190,15 +190,15 @@ peers:
       ssl-target-name-override: peer0.org2.example.com
       grpc.keepalive_time_ms: 600000
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/tlscacerts/tls-localhost-8054-ca-org2-example-com.pem
-
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/tlscacerts/tls-localhost-8054-ca-org2-example-com.pem
+  
   peer0.org3.example.com:
     url: grpcs://localhost:11051
     grpcOptions:
       ssl-target-name-override: peer0.org3.example.com
       grpc.keepalive_time_ms: 600000
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/tlscacerts/tls-localhost-10054-ca-org3-example-com.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/tlscacerts/tls-localhost-10054-ca-org3-example-com.pem
 
   # peer0.org4.example.com:
   #   url: grpcs://localhost:12051
@@ -206,7 +206,7 @@ peers:
   #     ssl-target-name-override: peer0.org4.example.com
   #     grpc.keepalive_time_ms: 600000
   #   tlsCACerts:
-  #     path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org4.example.com/peers/peer0.org4.example.com/tls/tlscacerts/tls-localhost-11054-ca-org4-example-com.pem
+  #     path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org4.example.com/peers/peer0.org4.example.com/tls/tlscacerts/tls-localhost-11054-ca-org4-example-com.pem
 
   # peer0.org5.example.com:
   #   url: grpcs://localhost:13051
@@ -214,7 +214,7 @@ peers:
   #     ssl-target-name-override: peer0.org5.example.com
   #     grpc.keepalive_time_ms: 600000
   #   tlsCACerts:
-  #     path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org5.example.com/peers/peer0.org5.example.com/tls/tlscacerts/tls-localhost-12054-ca-org5-example-com.pem
+  #     path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org5.example.com/peers/peer0.org5.example.com/tls/tlscacerts/tls-localhost-12054-ca-org5-example-com.pem
 
 certificateAuthorities:
   ca.org1.example.com:
@@ -222,7 +222,7 @@ certificateAuthorities:
     httpOptions:
       verify: false
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org1.example.com/tlsca/tlsca.org1.example.com-cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org1.example.com/tlsca/tlsca.org1.example.com-cert.pem
     registrar:
       - enrollId: admin
         enrollSecret: adminpw
@@ -232,7 +232,7 @@ certificateAuthorities:
     httpOptions:
       verify: false
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem
     registrar:
       - enrollId: admin
         enrollSecret: adminpw
@@ -242,7 +242,7 @@ certificateAuthorities:
     httpOptions:
       verify: false
     tlsCACerts:
-      path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org3.example.com/tlsca/tlsca.org3.example.com-cert.pem
+      path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org3.example.com/tlsca/tlsca.org3.example.com-cert.pem
     registrar:
       - enrollId: admin
         enrollSecret: adminpw
@@ -252,7 +252,7 @@ certificateAuthorities:
   #   httpOptions:
   #     verify: false
   #   tlsCACerts:
-  #     path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org4.example.com/tlsca/tlsca.org4.example.com-cert.pem
+  #     path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org4.example.com/tlsca/tlsca.org4.example.com-cert.pem
   #   registrar:
   #     - enrollId: admin
   #       enrollSecret: adminpw
@@ -262,7 +262,7 @@ certificateAuthorities:
   #   httpOptions:
   #     verify: false
   #   tlsCACerts:
-  #     path: networks/fabric/standard-v2.1/crypto-config/peerOrganizations/org5.example.com/tlsca/tlsca.org5.example.com-cert.pem
+  #     path: networks/fabric/opusdei-v2.1/crypto-config/peerOrganizations/org5.example.com/tlsca/tlsca.org5.example.com-cert.pem
   #   registrar:
   #     - enrollId: admin
   #       enrollSecret: adminpw
