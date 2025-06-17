@@ -1,5 +1,5 @@
 # Telemedicine Platform with Blockchain-Powered Consent Management
-Azure VM
+
 This repository contains the source code for a telemedicine application built on Hyperledger Fabric. The platform features a dynamic, patient-centric consent management system inspired by the "Consentio" framework, designed to give patients granular control over their medical data.
 
 ## 📖 Table of Contents
