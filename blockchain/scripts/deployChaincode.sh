@@ -137,10 +137,8 @@ queryCommitted() {
 }
 
 # =================================================================================
-# == MedicalConsentContract Test Functions (CORRECTED)
+# == MedicalConsentContract Test Functions (CORRECTED & ROBUST)
 # =================================================================================
-
-# --- Invoke Functions (Write Transactions) ---
 
 function registerDoctor() {
     local org_num=$1
@@ -148,7 +146,7 @@ function registerDoctor() {
     local specialization=$3
     setGlobals $org_num
 
-    echo "Invoking registerDoctorProfile (as Org${org_num})..."
+    echo "Invoking registerDoctorProfile (as Org${org_num} Admin)..."
     peer chaincode invoke -o localhost:7050 \
         --ordererTLSHostnameOverride orderer.example.com --tls --cafile $ORDERER_CA \
         -C $CHANNEL_NAME -n ${CC_NAME} \
@@ -156,7 +154,6 @@ function registerDoctor() {
         --peerAddresses localhost:9051 --tlsRootCertFiles $PEER0_ORG2_CA \
         -c '{"function":"registerDoctorProfile","Args":["'"$name"'", "'"$specialization"'"]}'
     res=$?
-    { set +x; } 2>/dev/null
     verifyResult $res "Doctor registration failed"
     echo "------------------------------------------------------------"
 }
@@ -171,24 +168,44 @@ function createPatientRecord() {
     local details="Initial consultation for ${patient_name}"
 
     echo "Invoking createPatientRecord (as Patient ${patient_name} from Org${org_num})..."
-    
-    # --- FIX: Use a robust 4-stage pipeline to extract and clean the JSON payload ---
-    local result_payload=$(peer chaincode invoke -o localhost:7050 \
+
+    # --- THE ROBUST  ---
+    # 1. Capture ALL output (stdout and stderr) by redirecting stderr to stdout (2>&1).
+    local invoke_output
+    invoke_output=$(peer chaincode invoke -o localhost:7050 \
         --ordererTLSHostnameOverride orderer.example.com --tls --cafile $ORDERER_CA \
         -C $CHANNEL_NAME -n ${CC_NAME} \
         --peerAddresses localhost:7051 --tlsRootCertFiles $PEER0_ORG1_CA \
         --peerAddresses localhost:9051 --tlsRootCertFiles $PEER0_ORG2_CA \
-        -c '{"function":"createPatientRecord","Args":["'"$fileName"'", "'"$s3Key"'", "'"$details"'"]}' --waitForEvent 2>&1 \
-        | grep "payload:" \
-        | sed -e 's/.*payload://' \
-        | sed -e 's/^"//' -e 's/"$//' \
-        | sed -e 's/\\"/"/g')
+        -c '{"function":"createPatientRecord","Args":["'"$fileName"'", "'"$s3Key"'",  "","'"$details"'"]}' --waitForEvent 2>&1)
     
-    res=$?
-    { set +x; } 2>/dev/null
+    local res=$?
     verifyResult $res "Patient record creation failed"
+
+    # 2. Parse the captured output using your proven pipeline. This isolates the JSON.
+    local result_payload
+    result_payload=$(echo "$invoke_output" | grep "payload:" | sed -e 's/.*payload://' | sed -e 's/^"//' -e 's/"$//' | sed -e 's/\\"/"/g')
+
+    # 3. Add a check to ensure the payload was actually parsed before using jq.
+    if [ -z "$result_payload" ]; then
+        echo "FATAL: Could not parse payload from invoke output."
+        echo "--- Full Invoke Output ---"
+        echo "$invoke_output"
+        echo "--------------------------"
+        exit 1
+    fi
     
     export PATIENT_RECORD_ID=$(echo "$result_payload" | jq -r .recordId)
+    
+    # 4. Add a check to ensure the ID was extracted from the JSON.
+    if [ -z "$PATIENT_RECORD_ID" ]; then
+        echo "FATAL: jq could not find .recordId in the parsed payload."
+        echo "--- Parsed Payload ---"
+        echo "$result_payload"
+        echo "----------------------"
+        exit 1
+    fi
+    
     echo "------------------------------------------------------------"
     echo ">>> Success! Created Patient Record with ID: ${PATIENT_RECORD_ID}"
     echo "------------------------------------------------------------"
@@ -200,25 +217,41 @@ function grantConsent() {
     local doctorId=$3
     setGlobals $org_num
 
-    echo "Invoking grantConsent to give Doctor [${doctorId}] access to Record [${recordId}]..."
+    echo "Invoking grantConsent to give Doctor [${doctorId:0:30}...}] access to Record [${recordId}]..."
 
-    # --- FIX: Apply the same robust pipeline here ---
-    local result_payload=$(peer chaincode invoke -o localhost:7050 \
+    
+    local invoke_output
+    invoke_output=$(peer chaincode invoke -o localhost:7050 \
         --ordererTLSHostnameOverride orderer.example.com --tls --cafile $ORDERER_CA \
         -C $CHANNEL_NAME -n ${CC_NAME} \
         --peerAddresses localhost:7051 --tlsRootCertFiles $PEER0_ORG1_CA \
         --peerAddresses localhost:9051 --tlsRootCertFiles $PEER0_ORG2_CA \
-        -c '{"function":"grantConsent","Args":["'"$recordId"'", "'"$doctorId"'"]}' --waitForEvent 2>&1 \
-        | grep "payload:" \
-        | sed -e 's/.*payload://' \
-        | sed -e 's/^"//' -e 's/"$//' \
-        | sed -e 's/\\"/"/g')
+        -c '{"function":"grantConsent","Args":["'"$recordId"'", "'"$doctorId"'"]}' --waitForEvent 2>&1)
 
     res=$?
-    { set +x; } 2>/dev/null
     verifyResult $res "Granting consent failed"
     
+    local result_payload
+    result_payload=$(echo "$invoke_output" | grep "payload:" | sed -e 's/.*payload://' | sed -e 's/^"//' -e 's/"$//' | sed -e 's/\\"/"/g')
+
+    if [ -z "$result_payload" ]; then
+        echo "FATAL: Could not parse payload from grantConsent invoke output."
+        echo "--- Full Invoke Output ---"
+        echo "$invoke_output"
+        echo "--------------------------"
+        exit 1
+    fi
+
     export CONSENT_ID=$(echo "$result_payload" | jq -r .consentId)
+    
+    if [ -z "$CONSENT_ID" ]; then
+        echo "FATAL: jq could not find .consentId in the parsed payload."
+        echo "--- Parsed Payload ---"
+        echo "$result_payload"
+        echo "----------------------"
+        exit 1
+    fi
+    
     echo "------------------------------------------------------------"
     echo ">>> Success! Created Consent with ID: ${CONSENT_ID}"
     echo "------------------------------------------------------------"
@@ -246,19 +279,22 @@ function findAssetsByQuery() {
 
     echo "Querying with selector: ${queryString}..."
 
-    # --- FIX: Use printf to safely construct the JSON for the -c flag ---
-    # %s will be replaced by the queryString, correctly embedding it as a string
-    # inside the "Args" array. This avoids all shell quoting issues.
-    local ctor_json=$(printf '{"function":"findAssetsByQuery","Args":["%s"]}' "$queryString")
+    # --- THE DEFINITIVE  ---
+    # Step 1: Escape all the double quotes inside the incoming query string.
+    # This turns {"a":"b"} into {\"a\":\"b\"}
+    local escaped_query_string=$(echo "$queryString" | sed 's/"/\\"/g')
 
+    # Step 2: Construct the final JSON string using the escaped query.
+    # Note that the escaped string is now placed inside the "Args" array's quotes.
+    local ctor_json="{\"function\":\"findAssetsByQuery\",\"Args\":[\"$escaped_query_string\"]}"
+
+    # Step 3: Execute the command. The -c argument is now valid JSON.
     peer chaincode query -C $CHANNEL_NAME -n ${CC_NAME} -c "$ctor_json"
     res=$?
     { set +x; } 2>/dev/null
     verifyResult $res "Rich query failed"
     echo "------------------------------------------------------------"
 }
-
-
 
 # Run this function if you add any new dependency in chaincode
 presetup
@@ -273,8 +309,10 @@ checkCommitReadyness
 commitChaincodeDefination
 queryCommitted
 
+
+
 echo
-echo "===================== Starting Test Scenario (FIXED) ====================="
+echo "===================== Starting Test Scenario ====================="
 echo
 
 # Step 1: Register Dr. Alice (same as before)
@@ -282,7 +320,7 @@ echo "Step 1: Registering Doctor..."
 registerDoctor 1 "Dr. Alice" "Cardiology"
 
 # Step 1.5: Get the REAL ID for Dr. Alice
-echo "Step 1.5: Retrieving the real X.509 ID for Dr. Alice..." 
+echo "Step 1.5: Retrieving the real X.509 ID for Dr. Alice..."
 setGlobals 1 # Make sure we are acting as Org1 Admin (Dr. Alice)
 # Call the new chaincode function and capture the output
 export DOCTOR_ALICE_ID=$(peer chaincode query -C $CHANNEL_NAME -n ${CC_NAME} -c '{"function":"getMyId","Args":[]}')

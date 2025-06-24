@@ -2,7 +2,7 @@
 
 # All steps for running network
 # 1)Create Certificate authority for all organization
-docker-compose -f ../artifacts/channel/create-certificate-with-ca/docker-compose.yaml   up -d 
+docker-compose -f ../artifacts/channel/create-certificate-with-ca/docker-compose.yaml   up -d --remove-orphans
 # --------------------------------------------------------------------------------------------
 
 # Note: We are considering , we already created all participants certioficates

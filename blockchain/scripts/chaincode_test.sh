@@ -52,7 +52,7 @@ function createPatientRecord() {
         -C $CHANNEL_NAME -n ${CC_NAME} \
         --peerAddresses localhost:7051 --tlsRootCertFiles $PEER0_ORG1_CA \
         --peerAddresses localhost:9051 --tlsRootCertFiles $PEER0_ORG2_CA \
-        -c '{"function":"createPatientRecord","Args":["'"$fileName"'", "'"$s3Key"'", "'"$details"'"]}' --waitForEvent 2>&1 \
+        -c '{"function":"createPatientRecord","Args":["'"$fileName"'", "'"$s3Key"'", "", "'"$details"'"]}' --waitForEvent 2>&1 \
         | grep "payload:" \
         | sed -e 's/.*payload://' \
         | sed -e 's/^"//' -e 's/"$//' \
@@ -76,7 +76,7 @@ function grantConsent() {
 
     echo "Invoking grantConsent to give Doctor [${doctorId}] access to Record [${recordId}]..."
 
-    # --- FIX: Apply the same robust pipeline here ---
+    # --- Apply the same robust pipeline here ---
     local result_payload=$(peer chaincode invoke -o localhost:7050 \
         --ordererTLSHostnameOverride orderer.example.com --tls --cafile $ORDERER_CA \
         -C $CHANNEL_NAME -n ${CC_NAME} \
@@ -120,7 +120,7 @@ function findAssetsByQuery() {
 
     echo "Querying with selector: ${queryString}..."
 
-    # --- THE DEFINITIVE FIX ---
+    # --- THE DEFINITIVE ---
     # Step 1: Escape all the double quotes inside the incoming query string.
     # This turns {"a":"b"} into {\"a\":\"b\"}
     local escaped_query_string=$(echo "$queryString" | sed 's/"/\\"/g')
