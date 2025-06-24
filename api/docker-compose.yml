@@ -1,0 +1,20 @@
+version: '2.1'
+
+networks:
+  test:
+    external:
+      name: artifacts_test
+
+services:
+  medical-consent-api:
+    container_name: medical-consent-api
+    image: medical-consent-api:1.0
+    build: .
+    networks:
+      - test
+    ports:
+      - 3000:3000
+    env_file: ./.env
+    volumes:
+      - ./wallets:/usr/src/app/wallets
+      - ./uploads:/usr/src/app/uploads
