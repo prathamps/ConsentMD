@@ -52,7 +52,7 @@ const createConsultation = async (user, consultationBody) => {
  * @returns {Promise<QueryResult>}
  */
 const getConsultationRequests = async (user) => {
-  return Consultation.find({ doctor: user._id }).populate('patient', 'name email');
+  return Consultation.find({ doctor: user._id }).populate('patient', 'name email blockchainId');
 };
 
 /**
@@ -72,26 +72,19 @@ const getMyConsultations = async (user) => {
  * @returns {Promise<Consultation>}
  */
 const updateConsultationStatus = async (user, consultationId, status) => {
-  console.log(`--- Attempting to update consultation [${consultationId}] to status [${status}] by doctor [${user.email}]`);
-  if (![CONSULTATION_STATUS.APPROVED, CONSULTATION_STATUS.REJECTED].includes(status)) {
+  const lowerCaseStatus = status.toLowerCase();
+  if (![CONSULTATION_STATUS.APPROVED, CONSULTATION_STATUS.REJECTED].includes(lowerCaseStatus)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid status update.');
   }
-
   const consultation = await Consultation.findById(consultationId);
   if (!consultation) {
-    console.log(`--- Update failed: Consultation [${consultationId}] not found.`);
     throw new ApiError(httpStatus.NOT_FOUND, 'Consultation not found');
   }
-
-  // Ensure the logged-in doctor is the one assigned to the consultation
   if (consultation.doctor.toString() !== user._id.toString()) {
-    console.log(`--- Update failed: Doctor [${user.email}] is not authorized for consultation [${consultationId}].`);
     throw new ApiError(httpStatus.FORBIDDEN, 'You are not authorized to update this consultation.');
   }
-
-  consultation.status = status;
+  consultation.status = lowerCaseStatus;
   await consultation.save();
-  console.log('--- Consultation status updated successfully. New document:', consultation);
   return consultation;
 };
 

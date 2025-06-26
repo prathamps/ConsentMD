@@ -45,6 +45,11 @@ const getAccessibleRecords = catchAsync(async (req, res) => {
   res.status(httpStatus.OK).send(getSuccessResponse(httpStatus.OK, 'Accessible records fetched successfully', records));
 });
 
+const getRecordFileUrl = catchAsync(async (req, res) => {
+  const url = await recordService.getRecordFileUrl(req.user, req.params.recordId);
+  res.status(httpStatus.OK).send(getSuccessResponse(httpStatus.OK, 'File URL fetched successfully', { url }));
+});
+
 const deleteFileFromRecord = catchAsync(async (req, res) => {
   const message = await recordService.deleteFileFromRecord(req.user, req.params.recordId);
   res.status(httpStatus.OK).send(getSuccessResponse(httpStatus.OK, message, null));
@@ -59,5 +64,6 @@ module.exports = {
   getMyRecords,
   getMyConsents,
   getAccessibleRecords,
+  getRecordFileUrl,
   deleteFileFromRecord,
 };

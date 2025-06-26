@@ -38,6 +38,10 @@ router.get('/accessible', auth('doctor'), recordController.getAccessibleRecords)
 router.route('/:recordId').get(auth('getRecords'), validate(recordValidation.getRecordById), recordController.getRecordById);
 
 router
+  .route('/:recordId/file-url')
+  .get(auth('getRecords'), validate(recordValidation.getRecordById), recordController.getRecordFileUrl);
+
+router
   .route('/:recordId/file')
   .delete(auth('patient'), validate(recordValidation.getRecordById), recordController.deleteFileFromRecord);
 

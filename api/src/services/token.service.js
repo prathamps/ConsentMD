@@ -71,7 +71,7 @@ const generateAuthTokens = async (user) => {
 
   let userData = {
     email: user.email,
-    type: user.type,
+    role: user.role,
     orgId: user.orgId,
     name: user.name,
     id: user.id,

@@ -2,7 +2,7 @@ const httpStatus = require('http-status');
 const { User, Consultation } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { evaluateTransaction, submitTransaction } = require('../utils/blockchainUtils');
-const { deleteFile } = require('../utils/fileUpload');
+const { deleteFile, getSignedUrl } = require('../utils/fileUpload');
 
 /**
  * Fetches a single medical record from the blockchain.
@@ -353,6 +353,38 @@ const deleteFileFromRecord = async (user, recordId) => {
   }
 };
 
+/**
+ * Generates a pre-signed URL for a record's S3 file.
+ * @param {object} user - The authenticated user object.
+ * @param {string} recordId - The ID of the record.
+ * @returns {Promise<string>} The pre-signed URL.
+ */
+const getRecordFileUrl = async (user, recordId) => {
+  const record = await getRecordById(user, recordId);
+  if (!record || !record.s3ObjectKey) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'File not found for this record.');
+  }
+
+  let s3Key_fileNameOnly = record.s3ObjectKey;
+  let orgName;
+
+  // Check if the key already contains the org prefix and extract parts
+  if (s3Key_fileNameOnly.includes('/')) {
+    const keyParts = s3Key_fileNameOnly.split('/');
+    if (keyParts.length < 2 || !keyParts[0] || !keyParts[1]) {
+      throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Invalid S3 key format in record.');
+    }
+    orgName = keyParts[0];
+    // Re-join the rest of the parts in case the filename itself contains a slash
+    s3Key_fileNameOnly = keyParts.slice(1).join('/');
+  } else {
+    // If there's no prefix, it's a patient record, which belongs to org2.
+    orgName = 'org2';
+  }
+
+  return getSignedUrl(s3Key_fileNameOnly, orgName);
+};
+
 module.exports = {
   getRecordById,
   createPatientRecord,
@@ -363,4 +395,5 @@ module.exports = {
   getMyConsents,
   getAccessibleRecords,
   deleteFileFromRecord,
+  getRecordFileUrl,
 };
