@@ -4,6 +4,7 @@ This repository contains the source code for a telemedicine application built on
 
 ## 📖 Table of Contents
 
+
 - [Project Description](#project-description)
 - [Key Features](#key-features)
 - [Technology Stack](#technology-stack)
@@ -32,7 +33,7 @@ Smart contracts (chaincode) automatically enforce these patient-defined consent 
 - **Database:** CouchDB (for rich query support with Fabric)
 - **Containerization:** Docker, Docker Compose
 
-## ✅ Prerequisites
+##  Prerequisites
 
 Before you begin, ensure you have the following installed on your system.
 
