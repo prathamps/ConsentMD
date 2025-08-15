@@ -76,6 +76,19 @@ const getAssignedDoctors = catchAsync(async (req, res) => {
   res.send(doctors);
 });
 
+const populateBlockchainIds = catchAsync(async (req, res) => {
+  const { populateBlockchainIds: populateIds } = require('../../scripts/populate-blockchain-ids');
+  
+  try {
+    await populateIds();
+    res.status(httpStatus.OK).send(
+      getSuccessResponse(httpStatus.OK, 'Blockchain IDs populated successfully', {})
+    );
+  } catch (error) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to populate blockchain IDs');
+  }
+});
+
 module.exports = {
   createUser,
   getUsers,
@@ -87,4 +100,5 @@ module.exports = {
   getDoctors,
   getAssignedPatients,
   getAssignedDoctors,
+  populateBlockchainIds,
 };

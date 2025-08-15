@@ -6,13 +6,7 @@ const fs = require('fs');
 const ApiError = require('./ApiError');
 const httpStatus = require('http-status');
 
-const crypto = require('crypto');
-const grpc = require('@grpc/grpc-js');
-const { connect, Contract, Identity, Signer, signers } = require('@hyperledger/fabric-gateway');
-const utf8Decoder = new TextDecoder();
-
 const config = require('../config/config');
-const catchAsync = require('./catchAsync');
 const logger = require('../config/logger');
 
 const getCCP = async (orgName) => {
@@ -67,7 +61,11 @@ const getWalletPath = async (orgName) => {
 const enrollAdmin = async (_ca, wallet, orgName, ccp) => {
   const caInfo = await getCaInfo(orgName, ccp);
   const caTLSCACerts = caInfo.tlsCACerts.pem;
-  const ca = new FabricCAServices(caInfo.url, { trustedRoots: caTLSCACerts, verify: false }, caInfo.caName);
+  const ca = new FabricCAServices(caInfo.url, { 
+    trustedRoots: caTLSCACerts, 
+    verify: false,
+    'ssl-target-name-override': caInfo.caName
+  }, caInfo.caName);
   const enrollment = await ca.enroll({ enrollmentID: config.caAdminId, enrollmentSecret: config.caAdminSecret });
 
   let x509Identity = {
@@ -84,8 +82,14 @@ const enrollAdmin = async (_ca, wallet, orgName, ccp) => {
 
 const registerUser = async (orgName, userName, userRole) => {
   const ccp = await getCCP(orgName);
-  const caURL = await getCaUrl(orgName, ccp);
-  const ca = new FabricCAServices(caURL);
+  const caInfo = await getCaInfo(orgName, ccp);
+  const caTLSCACerts = caInfo.tlsCACerts.pem;
+  
+  const ca = new FabricCAServices(caInfo.url, { 
+    trustedRoots: caTLSCACerts, 
+    verify: false,
+    'ssl-target-name-override': caInfo.caName
+  }, caInfo.caName);
   const walletPath = await getWalletPath(orgName);
 
   const wallet = await Wallets.newFileSystemWallet(walletPath);
@@ -168,7 +172,14 @@ const connectToGateway = async (orgName, identityLabel) => {
     await gateway.connect(ccp, {
       wallet,
       identity: identityLabel,
-      discovery: { enabled: true },
+      discovery: { 
+        enabled: true,
+        asLocalhost: false 
+      },
+      eventHandlerOptions: {
+        commitTimeout: 100,
+        strategy: null
+      }
     });
 
     const network = await gateway.getNetwork(config.blockchain.channelName);
@@ -178,8 +189,8 @@ const connectToGateway = async (orgName, identityLabel) => {
   } catch (error) {
     // Disconnect gateway if connection fails partway through
     gateway.disconnect();
-    logger.error(`Failed to connect to gateway: ${error}`);
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to connect to the blockchain network.');
+    logger.error(`Failed to connect to gateway for ${identityLabel} in ${orgName}: ${error.message}`);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, `Failed to connect to the blockchain network: ${error.message}`);
   }
 };
 
@@ -214,7 +225,7 @@ const submitTransaction = async (orgName, identityLabel, functionName, ...args) 
 };
 
 /**
- * Evaluates a query on the ledger (read-only).
+ * Evaluates a query on the ledger (read-only) with retry logic.
  *
  * @param {string} orgName - The organization of the user.
  * @param {string} identityLabel - The user's identity label.
@@ -223,22 +234,39 @@ const submitTransaction = async (orgName, identityLabel, functionName, ...args) 
  * @returns {Buffer} The raw result from the chaincode.
  */
 const evaluateTransaction = async (orgName, identityLabel, functionName, ...args) => {
-  let connection;
-  try {
-    connection = await connectToGateway(orgName, identityLabel);
-    const { contract } = connection;
+  const maxRetries = 3;
+  const baseDelay = 1000; // 1 second
 
-    logger.info(`Evaluating query: ${functionName} with args: ${args.join(', ')} by ${identityLabel} of ${orgName}`);
-    const result = await contract.evaluateTransaction(functionName, ...args);
-    logger.info(`Query ${functionName} successful. Result (raw): ${result.toString()}`);
-    return result;
-  } catch (error) {
-    logger.error(`Failed to evaluate transaction "${functionName}": ${error.message}`);
-    // Re-throw the original error to be handled by the controller's catchAsync
-    throw error;
-  } finally {
-    if (connection && connection.gateway) {
-      connection.gateway.disconnect();
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let connection;
+    try {
+      connection = await connectToGateway(orgName, identityLabel);
+      const { contract } = connection;
+
+      logger.info(`Evaluating query: ${functionName} with args: ${args.join(', ')} by ${identityLabel} of ${orgName} (attempt ${attempt})`);
+      const result = await contract.evaluateTransaction(functionName, ...args);
+      logger.info(`Query ${functionName} successful. Result (raw): ${result.toString()}`);
+      return result;
+    } catch (error) {
+      logger.error(`Failed to evaluate transaction "${functionName}" (attempt ${attempt}): ${error.message}`);
+      
+      if (connection && connection.gateway) {
+        connection.gateway.disconnect();
+      }
+
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      // Wait before retrying with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      logger.info(`Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    } finally {
+      if (connection && connection.gateway) {
+        connection.gateway.disconnect();
+      }
     }
   }
 };

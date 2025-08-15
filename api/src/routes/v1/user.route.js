@@ -33,4 +33,9 @@ router
   .route('/:id/status')
   .put(auth('manageUsers'), validate(userValidation.updateUserStatus), userController.updateUserStatus);
 
+// Admin endpoint to populate missing blockchain IDs
+router
+  .route('/admin/populate-blockchain-ids')
+  .post(auth('manageUsers'), userController.populateBlockchainIds);
+
 module.exports = router;

@@ -18,3 +18,4 @@ services:
     volumes:
       - ./wallets:/usr/src/app/wallets
       - ./uploads:/usr/src/app/uploads
+      - ../blockchain:/usr/src/blockchain

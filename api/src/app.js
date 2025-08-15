@@ -50,8 +50,20 @@ app.use(mongoSanitize());
 app.use(compression());
 
 // enable cors
-app.use(cors());
-app.options('*', cors());
+// enable cors
+const corsOptions = {
+  origin: [
+    'http://localhost:3002', 
+    'http://localhost:3000', 
+    'https://consentmd-frontend.netlify.app',
+    'https://consentmd.online',
+    'https://app.consentmd.online'
+  ],
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // jwt authentication
 app.use(passport.initialize());

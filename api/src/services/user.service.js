@@ -34,11 +34,15 @@ const createUser = async (userBody) => {
   // 4. Save the user to the database
   const user = await User.create(userToSave);
 
-  // 5. Fetch and save the blockchain ID
+  // 5. Fetch and save the blockchain ID (with delay to allow network propagation)
   try {
+    // Wait a moment for the identity to propagate through the network
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
     const idBuffer = await evaluateTransaction(orgName, user.email, 'getMyId');
     user.blockchainId = idBuffer.toString();
     await user.save();
+    console.log(`Successfully fetched blockchain ID for user ${user.email}: ${user.blockchainId}`);
   } catch (error) {
     // This is not a critical failure; the ID can be fetched later.
     // We log the error but don't prevent the user from being created.
@@ -224,6 +228,38 @@ const getAssignedDoctors = async (patientId) => {
   return [...new Map(doctors.map((item) => [item.id, item])).values()];
 };
 
+/**
+ * Fetch and update the blockchain ID for a user
+ * @param {string} userId - The user's database ID
+ * @returns {Promise<string>} The blockchain ID
+ */
+const fetchBlockchainId = async (userId) => {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  if (user.blockchainId) {
+    return user.blockchainId;
+  }
+
+  const orgName = user.organization === 'doctor' ? 'org1' : 'org2';
+  
+  try {
+    const idBuffer = await evaluateTransaction(orgName, user.email, 'getMyId');
+    const blockchainId = idBuffer.toString();
+    
+    user.blockchainId = blockchainId;
+    await user.save();
+    
+    console.log(`Successfully fetched and saved blockchain ID for user ${user.email}: ${blockchainId}`);
+    return blockchainId;
+  } catch (error) {
+    console.error(`Failed to fetch blockchain ID for user ${user.email}:`, error);
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to fetch blockchain ID');
+  }
+};
+
 module.exports = {
   createUser,
   queryUsers,
@@ -236,4 +272,5 @@ module.exports = {
   getDoctors,
   getAssignedPatients,
   getAssignedDoctors,
+  fetchBlockchainId,
 };
