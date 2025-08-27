@@ -1,0 +1,42 @@
+name: Fabric Network
+version: 2.0.0
+
+caliper:
+  blockchain: fabric
+
+channels:
+  mychannel:
+    contracts:
+      - id: "medicalconsent"
+        version: "1"
+
+organizations:
+  - mspid: Org1MSP
+    identities:
+      certificates:
+        - name: User1
+          clientPrivateKey:
+            path: /home/opusdei/e-contract-main/blockchain/artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore/priv_sk
+          clientSignedCert:
+            path: /home/opusdei/e-contract-main/blockchain/artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/cert.pem
+    connectionProfile:
+      path: networks/fabric/connection-org1-caliper.json
+
+  - mspid: Org2MSP
+    identities:
+      certificates:
+        - name: User1
+          clientPrivateKey:
+            path: /home/opusdei/e-contract-main/blockchain/artifacts/channel/crypto-config/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/keystore/priv_sk
+          clientSignedCert:
+            path: /home/opusdei/e-contract-main/blockchain/artifacts/channel/crypto-config/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/cert.pem
+    connectionProfile:
+      path: networks/fabric/connection-org2-caliper.json
+
+orderers:
+  orderer.example.com:
+    url: grpcs://localhost:7050
+    tlsCACerts:
+      path: ../../../artifacts/channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+    grpcOptions:
+      ssl-target-name-override: orderer.example.com
