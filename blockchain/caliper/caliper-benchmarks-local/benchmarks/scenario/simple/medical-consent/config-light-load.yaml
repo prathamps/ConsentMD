@@ -1,0 +1,191 @@
+test:
+  name: medical-consent-light-load-benchmark
+  description: Light load benchmark for medical consent chaincode with 1-2 workers and 1-5 TPS
+  workers:
+    type: local
+    number: 2
+  rounds:
+    # Profile Management Functions
+    - label: registerDoctorProfile
+      description: Register doctor profiles - light load
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 2
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/registerDoctorProfile.js
+        arguments: {}
+
+    - label: getMyId
+      description: Get identity verification - light load
+      txNumber: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getMyId.js
+        arguments: {}
+
+    # Record Creation Functions
+    - label: createPatientRecord
+      description: Create patient records - light load
+      txNumber: 40
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 3
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/createPatientRecord.js
+        arguments: {}
+
+    - label: createMedicalRecord
+      description: Create medical records - light load
+      txNumber: 35
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 2
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/createMedicalRecord.js
+        arguments: {}
+
+    # Record Management Functions
+    - label: updateRecordDetails
+      description: Update record details - light load
+      txNumber: 25
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 2
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/updateRecordDetails.js
+        arguments: {}
+
+    - label: archiveMedicalRecord
+      description: Archive medical records - light load
+      txNumber: 20
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 1
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/archiveMedicalRecord.js
+        arguments: {}
+
+    - label: removeFileFromRecord
+      description: Remove files from records - light load
+      txNumber: 15
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 1
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/removeFileFromRecord.js
+        arguments: {}
+
+    # Consent Management Functions
+    - label: grantConsent
+      description: Grant consent operations - light load
+      txNumber: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 2
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/grantConsent.js
+        arguments: {}
+
+    - label: revokeConsent
+      description: Revoke consent operations - light load
+      txNumber: 20
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 1
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/revokeConsent.js
+        arguments: {}
+
+    # Query and Private Data Functions
+    - label: getRecordById
+      description: Get records by ID - light load
+      txNumber: 60
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getRecordById.js
+        arguments: {}
+
+    - label: findAssetsByQuery
+      description: Find assets by query - light load
+      txNumber: 40
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 4
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/findAssetsByQuery.js
+        arguments: {}
+
+    - label: getAssetHistory
+      description: Get asset history - light load
+      txNumber: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 3
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getAssetHistory.js
+        arguments: {}
+
+    - label: assetExistsByQuery
+      description: Check asset existence - light load
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/assetExistsByQuery.js
+        arguments: {}
+
+    - label: addPrivateNoteToRecord
+      description: Add private notes to records - light load
+      txNumber: 25
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 2
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/addPrivateNoteToRecord.js
+        arguments: {}
+
+monitors:
+  resource:
+    - module: prometheus
+      options:
+        url: "http://localhost:9090"
+        metrics:
+          ignore:
+            [
+              prometheus,
+              pushGateway,
+              cadvisor,
+              grafana,
+              node-exporter,
+              ca.org1.example.com,
+              ca.org2.example.com,
+            ]
+          include:
+            Avg Memory (MB): avg(container_memory_rss{name=~".+"}) by (name)
+            CPU (%): avg(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name)
+            Network In (MB): avg(rate(container_network_receive_bytes_total{name=~".+"}[1m])) by (name)
+            Network Out (MB): avg(rate(container_network_transmit_bytes_total{name=~".+"}[1m])) by (name)
+
+observer:
+  type: prometheus
+  interval: 5

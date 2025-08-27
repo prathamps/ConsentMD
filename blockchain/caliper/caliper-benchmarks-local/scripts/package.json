@@ -1,0 +1,39 @@
+{
+	"name": "blockchain-performance-reporting",
+	"version": "1.0.0",
+	"description": "Enhanced reporting and analytics for blockchain performance testing with Hyperledger Caliper",
+	"main": "reporting/index.js",
+	"scripts": {
+		"generate-report": "node reporting/generateReport.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"bin": {
+		"generate-performance-report": "./reporting/generateReport.js"
+	},
+	"keywords": [
+		"blockchain",
+		"performance",
+		"testing",
+		"caliper",
+		"hyperledger",
+		"reporting",
+		"analytics"
+	],
+	"author": "ConsentMD Performance Team",
+	"license": "MIT",
+	"dependencies": {
+		"chart.js": "^3.9.1"
+	},
+	"devDependencies": {},
+	"engines": {
+		"node": ">=14.0.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ConsentMD/blockchain-performance-analysis.git"
+	},
+	"bugs": {
+		"url": "https://github.com/ConsentMD/blockchain-performance-analysis/issues"
+	},
+	"homepage": "https://github.com/ConsentMD/blockchain-performance-analysis#readme"
+}

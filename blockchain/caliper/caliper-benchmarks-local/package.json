@@ -4,14 +4,21 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"benchmark": "caliper launch manager --caliper-networkconfig networks/fabric/medical-consent-network.yaml --caliper-benchconfig benchmarks/scenario/simple/medical-consent/config.yaml --caliper-bind-sut fabric:2.2"
+		"test": "node scripts/validation/test-validation.js",
+		"benchmark": "caliper launch manager --caliper-networkconfig networks/fabric/medical-consent-network.yaml --caliper-benchconfig benchmarks/scenario/simple/medical-consent/config.yaml --caliper-bind-sut fabric:2.2",
+		"validate": "node scripts/validation/index.js",
+		"validate:network": "node scripts/validation/index.js --network-only",
+		"validate:chaincode": "node scripts/validation/index.js --chaincode-only",
+		"validate:quick": "node scripts/validation/index.js --quick",
+		"test:validation": "node scripts/validation/test-validation.js"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
 		"fabric-network": "^2.2.12",
+		"fabric-ca-client": "^2.2.12",
+		"js-yaml": "^4.1.0",
 		"nanoid": "^3.3.2",
 		"uuid": "^8.1.0"
 	},

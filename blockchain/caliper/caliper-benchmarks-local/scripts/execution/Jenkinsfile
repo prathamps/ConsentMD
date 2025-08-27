@@ -1,0 +1,346 @@
+pipeline {
+    agent any
+    
+    parameters {
+        choice(
+            name: 'BENCHMARK_SUITE',
+            choices: ['ci-light', 'ci-medium', 'ci-heavy', 'ci-workflow', 'ci-full'],
+            description: 'Benchmark suite to run'
+        )
+        booleanParam(
+            name: 'FAIL_FAST',
+            defaultValue: true,
+            description: 'Fail fast on first error'
+        )
+        string(
+            name: 'MAX_RETRIES',
+            defaultValue: '2',
+            description: 'Maximum retry attempts'
+        )
+        string(
+            name: 'NODE_VERSION',
+            defaultValue: '18',
+            description: 'Node.js version to use'
+        )
+    }
+    
+    environment {
+        NODE_VERSION = "${params.NODE_VERSION}"
+        BENCHMARK_SUITE = "${params.BENCHMARK_SUITE}"
+        FAIL_FAST = "${params.FAIL_FAST}"
+        MAX_RETRIES = "${params.MAX_RETRIES}"
+        PROJECT_DIR = 'ConsentMD/blockchain/caliper/caliper-benchmarks-local'
+        SCRIPTS_DIR = 'ConsentMD/blockchain/caliper/caliper-benchmarks-local/scripts/execution'
+    }
+    
+    options {
+        timeout(time: 2, unit: 'HOURS')
+        retry(1)
+        skipDefaultCheckout(false)
+        buildDiscarder(logRotator(numToKeepStr: '10', artifactNumToKeepStr: '10'))
+    }
+    
+    triggers {
+        // Run daily at 2 AM
+        cron('0 2 * * *')
+        
+        // Run on SCM changes (if configured)
+        pollSCM('H/15 * * * *')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "Checking out code..."
+                    checkout scm
+                    
+                    // Get commit information
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+                    
+                    env.GIT_BRANCH_NAME = sh(
+                        script: 'git rev-parse --abbrev-ref HEAD',
+                        returnStdout: true
+                    ).trim()
+                }
+            }
+        }
+        
+        stage('Setup Environment') {
+            steps {
+                script {
+                    echo "Setting up Node.js environment..."
+                    
+                    // Install Node.js using NodeJS plugin or system package manager
+                    sh """
+                        # Install Node.js if not available
+                        if ! command -v node &> /dev/null; then
+                            curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash -
+                            sudo apt-get install -y nodejs
+                        fi
+                        
+                        node --version
+                        npm --version
+                    """
+                }
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                dir("${PROJECT_DIR}") {
+                    script {
+                        echo "Installing project dependencies..."
+                        sh """
+                            npm ci
+                            npm install -g @hyperledger/caliper-cli
+                        """
+                    }
+                }
+                
+                dir("${SCRIPTS_DIR}") {
+                    script {
+                        echo "Installing execution script dependencies..."
+                        sh "npm install"
+                    }
+                }
+            }
+        }
+        
+        stage('Validate Environment') {
+            steps {
+                dir("${SCRIPTS_DIR}") {
+                    script {
+                        echo "Validating benchmark environment..."
+                        
+                        def validationResult = sh(
+                            script: 'node validateEnvironment.js',
+                            returnStatus: true
+                        )
+                        
+                        if (validationResult != 0) {
+                            error("Environment validation failed")
+                        }
+                        
+                        echo "Environment validation passed"
+                    }
+                }
+            }
+        }
+        
+        stage('Start Blockchain Network') {
+            steps {
+                script {
+                    echo "Starting blockchain network..."
+                    
+                    // Add your blockchain network startup commands here
+                    dir('ConsentMD/blockchain') {
+                        sh """
+                            # Example: Start Docker Compose network
+                            # docker-compose up -d
+                            
+                            # Wait for network to be ready
+                            sleep 30
+                            
+                            # Add health checks here
+                            echo "Blockchain network startup completed"
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Run Benchmarks') {
+            steps {
+                dir("${SCRIPTS_DIR}") {
+                    script {
+                        echo "Running benchmark suite: ${BENCHMARK_SUITE}"
+                        
+                        def benchmarkCommand = "node ci-benchmark.js ${BENCHMARK_SUITE} --config ci-config.json"
+                        
+                        if (params.FAIL_FAST) {
+                            benchmarkCommand += " --fail-fast"
+                        }
+                        
+                        if (params.MAX_RETRIES) {
+                            benchmarkCommand += " --max-retries ${params.MAX_RETRIES}"
+                        }
+                        
+                        def benchmarkResult = sh(
+                            script: benchmarkCommand,
+                            returnStatus: true
+                        )
+                        
+                        if (benchmarkResult != 0) {
+                            currentBuild.result = 'FAILURE'
+                            error("Benchmark execution failed")
+                        }
+                        
+                        echo "Benchmark execution completed successfully"
+                    }
+                }
+            }
+        }
+        
+        stage('Process Results') {
+            steps {
+                script {
+                    echo "Processing benchmark results..."
+                    
+                    dir("${PROJECT_DIR}") {
+                        // Archive reports
+                        archiveArtifacts(
+                            artifacts: 'reports/**/*,logs/**/*',
+                            allowEmptyArchive: true,
+                            fingerprint: true
+                        )
+                        
+                        // Publish HTML reports
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'reports',
+                            reportFiles: '*.html',
+                            reportName: 'Benchmark Reports',
+                            reportTitles: 'Blockchain Performance Benchmarks'
+                        ])
+                        
+                        // Generate trend data if available
+                        sh """
+                            if [ -d "reports" ] && [ "\$(ls -A reports)" ]; then
+                                echo "Reports generated successfully"
+                                ls -la reports/
+                            else
+                                echo "No reports found"
+                            fi
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Performance Analysis') {
+            steps {
+                dir("${PROJECT_DIR}") {
+                    script {
+                        echo "Running performance analysis..."
+                        
+                        // Run performance analysis scripts if available
+                        sh """
+                            if [ -f "scripts/reporting/performanceAnalyzer.js" ]; then
+                                node scripts/reporting/performanceAnalyzer.js --input reports/ --output analysis/
+                            fi
+                        """
+                        
+                        // Archive analysis results
+                        archiveArtifacts(
+                            artifacts: 'analysis/**/*',
+                            allowEmptyArchive: true
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                echo "Cleaning up..."
+                
+                // Stop blockchain network
+                dir('ConsentMD/blockchain') {
+                    sh """
+                        # Example: Stop Docker Compose network
+                        # docker-compose down
+                        echo "Blockchain network cleanup completed"
+                    """
+                }
+                
+                // Clean up temporary files
+                dir("${PROJECT_DIR}") {
+                    sh """
+                        # Clean up any temporary files
+                        find . -name "*.tmp" -delete || true
+                        find . -name "core.*" -delete || true
+                    """
+                }
+            }
+        }
+        
+        success {
+            script {
+                echo "Benchmark pipeline completed successfully"
+                
+                // Send success notification
+                if (env.SLACK_WEBHOOK) {
+                    sh """
+                        curl -X POST -H 'Content-type: application/json' \
+                            --data '{"text":"✅ Blockchain benchmarks passed for ${env.GIT_BRANCH_NAME} (${env.GIT_COMMIT_SHORT})"}' \
+                            ${env.SLACK_WEBHOOK}
+                    """
+                }
+                
+                // Update build description
+                currentBuild.description = "Benchmark Suite: ${BENCHMARK_SUITE} | Branch: ${env.GIT_BRANCH_NAME}"
+            }
+        }
+        
+        failure {
+            script {
+                echo "Benchmark pipeline failed"
+                
+                // Send failure notification
+                if (env.SLACK_WEBHOOK) {
+                    sh """
+                        curl -X POST -H 'Content-type: application/json' \
+                            --data '{"text":"❌ Blockchain benchmarks failed for ${env.GIT_BRANCH_NAME} (${env.GIT_COMMIT_SHORT})"}' \
+                            ${env.SLACK_WEBHOOK}
+                    """
+                }
+                
+                // Archive failure logs
+                archiveArtifacts(
+                    artifacts: 'logs/**/*',
+                    allowEmptyArchive: true
+                )
+            }
+        }
+        
+        unstable {
+            script {
+                echo "Benchmark pipeline is unstable"
+                
+                // Send warning notification
+                if (env.SLACK_WEBHOOK) {
+                    sh """
+                        curl -X POST -H 'Content-type: application/json' \
+                            --data '{"text":"⚠️ Blockchain benchmarks unstable for ${env.GIT_BRANCH_NAME} (${env.GIT_COMMIT_SHORT})"}' \
+                            ${env.SLACK_WEBHOOK}
+                    """
+                }
+            }
+        }
+        
+        changed {
+            script {
+                echo "Benchmark pipeline status changed"
+                
+                def status = currentBuild.result ?: 'SUCCESS'
+                def emoji = status == 'SUCCESS' ? '✅' : '❌'
+                
+                if (env.SLACK_WEBHOOK) {
+                    sh """
+                        curl -X POST -H 'Content-type: application/json' \
+                            --data '{"text":"${emoji} Benchmark status changed to ${status} for ${env.GIT_BRANCH_NAME} (${env.GIT_COMMIT_SHORT})"}' \
+                            ${env.SLACK_WEBHOOK}
+                    """
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,157 @@
+{
+	"global": {
+		"maxLatencyMs": 5000,
+		"minTPS": 1,
+		"maxErrorRate": 0.05,
+		"minSuccessRate": 0.95
+	},
+	"byFunction": {
+		"createPatientRecord": {
+			"maxLatencyMs": 3000,
+			"minTPS": 5,
+			"maxErrorRate": 0.02,
+			"description": "Patient record creation should be fast and reliable"
+		},
+		"getRecordById": {
+			"maxLatencyMs": 1000,
+			"minTPS": 20,
+			"maxErrorRate": 0.01,
+			"description": "Record retrieval should be very fast"
+		},
+		"grantConsent": {
+			"maxLatencyMs": 2000,
+			"minTPS": 10,
+			"maxErrorRate": 0.02,
+			"description": "Consent granting should be responsive"
+		},
+		"revokeConsent": {
+			"maxLatencyMs": 2000,
+			"minTPS": 10,
+			"maxErrorRate": 0.02,
+			"description": "Consent revocation should be responsive"
+		},
+		"findAssetsByQuery": {
+			"maxLatencyMs": 2000,
+			"minTPS": 15,
+			"maxErrorRate": 0.03,
+			"description": "Query operations should be reasonably fast"
+		},
+		"registerDoctorProfile": {
+			"maxLatencyMs": 2500,
+			"minTPS": 8,
+			"maxErrorRate": 0.02,
+			"description": "Doctor registration should be reliable"
+		},
+		"createMedicalRecord": {
+			"maxLatencyMs": 3500,
+			"minTPS": 6,
+			"maxErrorRate": 0.03,
+			"description": "Medical record creation may be slower due to complexity"
+		},
+		"updateRecordDetails": {
+			"maxLatencyMs": 2500,
+			"minTPS": 8,
+			"maxErrorRate": 0.02,
+			"description": "Record updates should be reasonably fast"
+		},
+		"archiveMedicalRecord": {
+			"maxLatencyMs": 2000,
+			"minTPS": 10,
+			"maxErrorRate": 0.02,
+			"description": "Record archival should be efficient"
+		},
+		"removeFileFromRecord": {
+			"maxLatencyMs": 1500,
+			"minTPS": 12,
+			"maxErrorRate": 0.02,
+			"description": "File removal should be quick"
+		},
+		"addPrivateNoteToRecord": {
+			"maxLatencyMs": 2500,
+			"minTPS": 8,
+			"maxErrorRate": 0.03,
+			"description": "Private data operations may be slower"
+		},
+		"getAssetHistory": {
+			"maxLatencyMs": 3000,
+			"minTPS": 5,
+			"maxErrorRate": 0.03,
+			"description": "History queries can be slower due to data volume"
+		},
+		"assetExistsByQuery": {
+			"maxLatencyMs": 1000,
+			"minTPS": 20,
+			"maxErrorRate": 0.01,
+			"description": "Existence checks should be very fast"
+		},
+		"getMyId": {
+			"maxLatencyMs": 500,
+			"minTPS": 50,
+			"maxErrorRate": 0.01,
+			"description": "Identity operations should be extremely fast"
+		}
+	},
+	"byLoadType": {
+		"light": {
+			"maxLatencyMs": 2000,
+			"minTPS": 5,
+			"maxErrorRate": 0.01,
+			"description": "Light load should have excellent performance"
+		},
+		"medium": {
+			"maxLatencyMs": 3000,
+			"minTPS": 15,
+			"maxErrorRate": 0.03,
+			"description": "Medium load should maintain good performance"
+		},
+		"heavy": {
+			"maxLatencyMs": 5000,
+			"minTPS": 30,
+			"maxErrorRate": 0.05,
+			"description": "Heavy load may have degraded but acceptable performance"
+		},
+		"stress": {
+			"maxLatencyMs": 10000,
+			"minTPS": 1,
+			"maxErrorRate": 0.1,
+			"description": "Stress testing allows higher latency and error rates"
+		}
+	},
+	"byWorkflow": {
+		"patient-journey": {
+			"maxLatencyMs": 4000,
+			"minTPS": 3,
+			"maxErrorRate": 0.03,
+			"description": "Patient workflow involves multiple operations"
+		},
+		"doctor-workflow": {
+			"maxLatencyMs": 3500,
+			"minTPS": 4,
+			"maxErrorRate": 0.03,
+			"description": "Doctor workflow should be efficient"
+		},
+		"mixed-operations": {
+			"maxLatencyMs": 3000,
+			"minTPS": 8,
+			"maxErrorRate": 0.04,
+			"description": "Mixed operations may have varied performance"
+		}
+	},
+	"regression": {
+		"enabled": true,
+		"maxDegradation": 0.2,
+		"description": "Performance should not degrade more than 20% from baseline"
+	},
+	"alerts": {
+		"criticalThresholds": {
+			"maxLatencyMs": 10000,
+			"minTPS": 0.5,
+			"maxErrorRate": 0.2
+		},
+		"warningThresholds": {
+			"maxLatencyMs": 7000,
+			"minTPS": 1,
+			"maxErrorRate": 0.1
+		}
+	}
+}

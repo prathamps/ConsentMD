@@ -1,0 +1,348 @@
+test:
+  name: medical-consent-mixed-operations-workflow
+  description: Concurrent read/write operation scenarios with realistic mixed workload patterns and contention analysis
+  workers:
+    type: local
+    number: 6
+  rounds:
+    # Phase 1: Concurrent Setup Operations
+    - label: concurrent-profile-setup
+      description: "Phase 1: Concurrent doctor profile registration and patient record creation"
+      txNumber: 40
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 8
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/registerDoctorProfile.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "concurrent-setup"
+          operation_type: "write"
+          concurrency_level: "high"
+
+    - label: concurrent-patient-records
+      description: "Phase 1b: Concurrent patient record creation"
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/createPatientRecord.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "concurrent-setup"
+          operation_type: "write"
+          concurrency_level: "high"
+
+    # Phase 2: Mixed Read/Write Operations - High Contention
+    - label: mixed-record-operations
+      description: "Phase 2: Mixed medical record creation and reading operations"
+      txNumber: 60
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/createMedicalRecord.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "mixed-readwrite"
+          operation_type: "write"
+          contention_level: "high"
+          concurrent_reads: true
+
+    - label: concurrent-record-access
+      description: "Phase 2b: Concurrent record access during write operations"
+      txNumber: 80
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getRecordById.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "mixed-readwrite"
+          operation_type: "read"
+          contention_level: "high"
+          concurrent_writes: true
+
+    # Phase 3: Consent Operations with Query Contention
+    - label: concurrent-consent-operations
+      description: "Phase 3: Concurrent consent granting and revocation"
+      txNumber: 45
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 12
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/grantConsent.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "consent-contention"
+          operation_type: "write"
+          contention_target: "consent_records"
+
+    - label: concurrent-consent-queries
+      description: "Phase 3b: Concurrent consent status queries"
+      txNumber: 70
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 18
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/findAssetsByQuery.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "consent-contention"
+          operation_type: "read"
+          query_type: "consent_status"
+          contention_target: "consent_records"
+
+    # Phase 4: Heavy Mixed Operations - Update Contention
+    - label: concurrent-record-updates
+      description: "Phase 4: Concurrent record updates with high contention"
+      txNumber: 35
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 8
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/updateRecordDetails.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "update-contention"
+          operation_type: "write"
+          contention_level: "extreme"
+          update_frequency: "high"
+
+    - label: concurrent-history-queries
+      description: "Phase 4b: Concurrent history queries during updates"
+      txNumber: 55
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 14
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getAssetHistory.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "update-contention"
+          operation_type: "read"
+          contention_level: "extreme"
+          concurrent_updates: true
+
+    # Phase 5: Private Data Operations with Mixed Access
+    - label: concurrent-private-data-writes
+      description: "Phase 5: Concurrent private data additions"
+      txNumber: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 6
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/addPrivateNoteToRecord.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "private-data-contention"
+          operation_type: "write"
+          data_type: "private"
+          contention_analysis: true
+
+    - label: concurrent-existence-checks
+      description: "Phase 5b: Concurrent asset existence checks"
+      txNumber: 65
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 16
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/assetExistsByQuery.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "private-data-contention"
+          operation_type: "read"
+          check_type: "existence_validation"
+          concurrent_private_writes: true
+
+    # Phase 6: File Operations with Mixed Access Patterns
+    - label: concurrent-file-operations
+      description: "Phase 6: Concurrent file removal operations"
+      txNumber: 25
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 5
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/removeFileFromRecord.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "file-contention"
+          operation_type: "write"
+          file_operation: "removal"
+          contention_analysis: true
+
+    - label: concurrent-complex-queries
+      description: "Phase 6b: Complex queries during file operations"
+      txNumber: 40
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/findAssetsByQuery.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "file-contention"
+          operation_type: "read"
+          query_complexity: "high"
+          concurrent_file_ops: true
+
+    # Phase 7: Archival Operations with Read Contention
+    - label: concurrent-archival-operations
+      description: "Phase 7: Concurrent record archival operations"
+      txNumber: 20
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 4
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/archiveMedicalRecord.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "archival-contention"
+          operation_type: "write"
+          archival_pattern: "concurrent"
+
+    - label: concurrent-archival-queries
+      description: "Phase 7b: Queries on records being archived"
+      txNumber: 35
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 8
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getRecordById.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "archival-contention"
+          operation_type: "read"
+          target_records: "archiving"
+          contention_analysis: true
+
+    # Phase 8: Consent Revocation with Mixed Operations
+    - label: concurrent-consent-revocation
+      description: "Phase 8: Concurrent consent revocation operations"
+      txNumber: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 6
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/revokeConsent.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "revocation-contention"
+          operation_type: "write"
+          revocation_pattern: "concurrent"
+
+    - label: final-validation-queries
+      description: "Phase 8b: Final validation queries across all operations"
+      txNumber: 50
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 12
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/findAssetsByQuery.js
+        arguments:
+          workflow: "mixed-operations"
+          phase: "final-validation"
+          operation_type: "read"
+          query_type: "comprehensive_validation"
+          validate_contention_results: true
+
+monitors:
+  resource:
+    - module: prometheus
+      options:
+        url: "http://localhost:9090"
+        metrics:
+          ignore:
+            [
+              prometheus,
+              pushGateway,
+              cadvisor,
+              grafana,
+              node-exporter,
+              ca.org1.example.com,
+              ca.org2.example.com,
+            ]
+          include:
+            Avg Memory (MB): avg(container_memory_rss{name=~".+"}) by (name)
+            CPU (%): avg(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name)
+            Network In (MB): avg(rate(container_network_receive_bytes_total{name=~".+"}[1m])) by (name)
+            Network Out (MB): avg(rate(container_network_transmit_bytes_total{name=~".+"}[1m])) by (name)
+            Read Operation TPS: avg(caliper_txn_rate{operation_type="read"}) by (label)
+            Write Operation TPS: avg(caliper_txn_rate{operation_type="write"}) by (label)
+            Contention Level: avg(caliper_contention_metric) by (phase)
+            Mixed Operation Latency: avg(caliper_txn_duration{workflow="mixed-operations"}) by (operation_type)
+            Concurrent Success Rate: avg(caliper_txn_success_rate{concurrency_level=~"high|extreme"}) by (label)
+
+observer:
+  type: prometheus
+  interval: 2
+
+# Mixed operations specific validation and contention analysis
+validation:
+  success_criteria:
+    - metric: "concurrent_operation_success_rate"
+      threshold: 0.92
+      description: "92% of concurrent operations must succeed despite contention"
+    - metric: "read_write_consistency"
+      threshold: 0.98
+      description: "98% consistency between concurrent reads and writes"
+    - metric: "contention_handling_efficiency"
+      threshold: 0.85
+      description: "85% efficiency in handling resource contention"
+    - metric: "mixed_workload_throughput"
+      threshold: 50
+      description: "Minimum 50 TPS for mixed workload operations"
+
+  contention_analysis:
+    - resource: "consent_records"
+      expected_contention: "high"
+      max_wait_time: 5.0
+    - resource: "medical_records"
+      expected_contention: "medium"
+      max_wait_time: 3.0
+    - resource: "private_data_collections"
+      expected_contention: "low"
+      max_wait_time: 2.0
+
+  performance_patterns:
+    read_operations:
+      target_latency: 1.0
+      concurrent_scaling: "linear"
+      contention_impact: "minimal"
+    write_operations:
+      target_latency: 2.5
+      concurrent_scaling: "sub-linear"
+      contention_impact: "moderate"
+    mixed_operations:
+      target_latency: 1.8
+      concurrent_scaling: "logarithmic"
+      contention_impact: "significant"
+
+  failure_conditions:
+    - metric: "deadlock_detection"
+      threshold: 0
+      description: "No deadlocks should occur"
+    - metric: "resource_starvation"
+      threshold: 0.05
+      description: "Resource starvation should be below 5%"
+    - metric: "contention_timeout_rate"
+      threshold: 0.08
+      description: "Contention timeouts should be below 8%"

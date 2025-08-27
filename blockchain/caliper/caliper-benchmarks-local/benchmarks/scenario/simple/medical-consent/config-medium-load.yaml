@@ -1,0 +1,193 @@
+test:
+  name: medical-consent-medium-load-benchmark
+  description: Medium load benchmark for medical consent chaincode with 3-5 workers and 10-25 TPS
+  workers:
+    type: local
+    number: 4
+  rounds:
+    # Profile Management Functions
+    - label: registerDoctorProfile
+      description: Register doctor profiles - medium load
+      txNumber: 200
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/registerDoctorProfile.js
+        arguments: {}
+
+    - label: getMyId
+      description: Get identity verification - medium load
+      txNumber: 150
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 25
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getMyId.js
+        arguments: {}
+
+    # Record Creation Functions
+    - label: createPatientRecord
+      description: Create patient records - medium load
+      txNumber: 180
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 18
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/createPatientRecord.js
+        arguments: {}
+
+    - label: createMedicalRecord
+      description: Create medical records - medium load
+      txNumber: 160
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/createMedicalRecord.js
+        arguments: {}
+
+    # Record Management Functions
+    - label: updateRecordDetails
+      description: Update record details - medium load
+      txNumber: 120
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 12
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/updateRecordDetails.js
+        arguments: {}
+
+    - label: archiveMedicalRecord
+      description: Archive medical records - medium load
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/archiveMedicalRecord.js
+        arguments: {}
+
+    - label: removeFileFromRecord
+      description: Remove files from records - medium load
+      txNumber: 80
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 8
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/removeFileFromRecord.js
+        arguments: {}
+
+    # Consent Management Functions
+    - label: grantConsent
+      description: Grant consent operations - medium load
+      txNumber: 140
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 14
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/grantConsent.js
+        arguments: {}
+
+    - label: revokeConsent
+      description: Revoke consent operations - medium load
+      txNumber: 100
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/revokeConsent.js
+        arguments: {}
+
+    # Query and Private Data Functions
+    - label: getRecordById
+      description: Get records by ID - medium load
+      txNumber: 250
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 25
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getRecordById.js
+        arguments: {}
+
+    - label: findAssetsByQuery
+      description: Find assets by query - medium load
+      txNumber: 200
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/findAssetsByQuery.js
+        arguments: {}
+
+    - label: getAssetHistory
+      description: Get asset history - medium load
+      txNumber: 150
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 15
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/getAssetHistory.js
+        arguments: {}
+
+    - label: assetExistsByQuery
+      description: Check asset existence - medium load
+      txNumber: 220
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 22
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/assetExistsByQuery.js
+        arguments: {}
+
+    - label: addPrivateNoteToRecord
+      description: Add private notes to records - medium load
+      txNumber: 120
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 12
+      workload:
+        module: benchmarks/scenario/simple/medical-consent/addPrivateNoteToRecord.js
+        arguments: {}
+
+monitors:
+  resource:
+    - module: prometheus
+      options:
+        url: "http://localhost:9090"
+        metrics:
+          ignore:
+            [
+              prometheus,
+              pushGateway,
+              cadvisor,
+              grafana,
+              node-exporter,
+              ca.org1.example.com,
+              ca.org2.example.com,
+            ]
+          include:
+            Avg Memory (MB): avg(container_memory_rss{name=~".+"}) by (name)
+            CPU (%): avg(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name)
+            Network In (MB): avg(rate(container_network_receive_bytes_total{name=~".+"}[1m])) by (name)
+            Network Out (MB): avg(rate(container_network_transmit_bytes_total{name=~".+"}[1m])) by (name)
+            Disk Read (MB): avg(rate(container_fs_reads_bytes_total{name=~".+"}[1m])) by (name)
+            Disk Write (MB): avg(rate(container_fs_writes_bytes_total{name=~".+"}[1m])) by (name)
+
+observer:
+  type: prometheus
+  interval: 3

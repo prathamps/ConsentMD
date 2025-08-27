@@ -1,0 +1,33 @@
+{
+	"name": "blockchain-benchmark-execution",
+	"version": "1.0.0",
+	"description": "Automated execution scripts for blockchain performance benchmarks",
+	"main": "runBenchmark.js",
+	"scripts": {
+		"validate": "node validateEnvironment.js",
+		"run": "node runBenchmark.js",
+		"help": "node runBenchmark.js help",
+		"ci": "node ci-benchmark.js",
+		"ci:light": "node ci-benchmark.js ci-light --config ci-config.json",
+		"ci:medium": "node ci-benchmark.js ci-medium --config ci-config.json",
+		"ci:heavy": "node ci-benchmark.js ci-heavy --config ci-config.json",
+		"ci:workflow": "node ci-benchmark.js ci-workflow --config ci-config.json",
+		"ci:full": "node ci-benchmark.js ci-full --config ci-config.json --fail-fast"
+	},
+	"keywords": [
+		"blockchain",
+		"performance",
+		"benchmark",
+		"caliper",
+		"hyperledger",
+		"automation"
+	],
+	"author": "ConsentMD Performance Team",
+	"license": "MIT",
+	"dependencies": {
+		"js-yaml": "^4.1.0"
+	},
+	"engines": {
+		"node": ">=14.0.0"
+	}
+}
