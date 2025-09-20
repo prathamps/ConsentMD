@@ -1,16 +1,36 @@
 {
-  "name": "caliper-benchmarks-local",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "nanoid": "^3.3.2",
-    "uuid": "^8.1.0"
-  }
+	"name": "consent-management-caliper-benchmark",
+	"version": "1.0.0",
+	"description": "Hyperledger Caliper benchmark tests for ConsentMD consent management system",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"benchmark": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management-suite.yaml --caliper-flow-only-test",
+		"benchmark-consent-granting": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/consent-granting-benchmark.yaml --caliper-flow-only-test",
+		"benchmark-record-access": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/record-access-benchmark.yaml --caliper-flow-only-test",
+		"benchmark-consent-revocation": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/consent-revocation-benchmark.yaml --caliper-flow-only-test",
+		"benchmark-mixed": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/mixed-workload-benchmark.yaml --caliper-flow-only-test"
+	},
+	"keywords": [
+		"hyperledger",
+		"caliper",
+		"fabric",
+		"blockchain",
+		"benchmark",
+		"consent-management",
+		"healthcare"
+	],
+	"author": "ConsentMD Team",
+	"license": "Apache-2.0",
+	"dependencies": {
+		"@grpc/grpc-js": "^1.10.3",
+		"@hyperledger/caliper-cli": "^0.6.0",
+		"@hyperledger/caliper-core": "^0.6.0",
+		"@hyperledger/caliper-fabric": "^0.6.0",
+		"@hyperledger/fabric-gateway": "^1.5.0"
+	},
+	"engines": {
+		"node": ">=18.0.0",
+		"npm": ">=8.0.0"
+	}
 }

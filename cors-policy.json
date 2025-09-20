@@ -1,0 +1,23 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "https://consentmd-frontend.netlify.app",
+        "http://localhost:3000",
+        "http://localhost:3001"
+      ],
+      "AllowedMethods": [
+        "GET",
+        "HEAD"
+      ],
+      "AllowedHeaders": [
+        "*"
+      ],
+      "ExposeHeaders": [
+        "ETag",
+        "x-amz-meta-custom-header"
+      ],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}

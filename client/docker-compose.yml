@@ -23,5 +23,5 @@ services:
       - "3002:3000"
     networks:
       - test
-    environment:
-      - NODE_ENV=development
+    # environment:
+    #   - NODE_ENV=development

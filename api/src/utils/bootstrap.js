@@ -57,11 +57,12 @@ const ingestBootstrapData = async () => {
       });
       try {
           //Blockchain Registration and Enrollment call
+          console.log(`org${user.orgId}`, user.email, user.organization)
           let secret = await registerUser(`org${user.orgId}`, user.email, user.organization);
           newUser.secret = secret
           newUser.isVerified = true
       } catch (error) {
-        
+        console.log(error)  
       } 
       await newUser.save();
 

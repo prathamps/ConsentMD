@@ -1,0 +1,31 @@
+test:
+  name: Consent Granting Smoke
+  description: Minimal 5-minute benchmark focusing on consent grants
+  workers:
+    number: 1
+  rounds:
+    - label: warmup
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: granting
+          patientCount: 2
+          doctorCount: 2
+          recordsPerPatient: 5
+    - label: grant
+      txDuration: 300
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: granting
+monitors:
+  resource: []

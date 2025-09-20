@@ -1,0 +1,84 @@
+test:
+  name: Record Access Performance Test
+  description: 5-minute performance test for medical record access operations
+  workers:
+    number: 3
+  rounds:
+    - label: initialization
+      description: Initialize test data with consent relationships
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: initialization
+          patientCount: 50
+          doctorCount: 20
+          recordsPerPatient: 100
+    - label: consent-setup
+      description: Create consent relationships for access testing
+      txDuration: 60
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 30
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: granting
+    - label: record-access-warmup
+      description: Warmup phase for record access
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+      workload:
+        module: workloads/record-access.js
+    - label: record-access-main
+      description: Main record access performance test
+      txDuration: 300
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 100
+      workload:
+        module: workloads/record-access.js
+    - label: cleanup
+      description: Clean up test data
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 30
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: cleanup
+
+monitors:
+  resource:
+    - module: prometheus
+      options:
+        url: "http://localhost:9090"
+        metrics:
+          include: [dev-.*, test-.*]
+          queries:
+            - name: "Avg Memory (MB)"
+              query: 'sum(container_memory_rss{name=~".+"}) by (name)'
+              step: 10
+              label: name
+              statistic: avg
+            - name: "CPU (%)"
+              query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+              step: 10
+              label: name
+              statistic: avg
+            - name: "Network In (MB)"
+              query: 'sum(rate(container_network_receive_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
+              step: 10
+              label: name
+              statistic: sum

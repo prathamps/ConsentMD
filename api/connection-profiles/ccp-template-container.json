@@ -1,5 +1,5 @@
 {
-    "name": "Contract Management-org${ORG}",
+    "name": "Medical Consent Management-org${ORG}",
     "version": "1.0.0",
     "client": {
         "organization": "Org${ORG}",

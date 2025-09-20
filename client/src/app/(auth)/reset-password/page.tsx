@@ -1,26 +1,14 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card"
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { useSearchParams, useRouter } from "next/navigation"
 import { resetPassword } from "@/services/auth.service"
 import { toast } from "sonner"
 import { AxiosError } from "axios"
@@ -37,10 +25,14 @@ const formSchema = z
 		path: ["confirmPassword"],
 	})
 
-export default function ResetPasswordForm() {
+export default function ResetPasswordPage() {
 	const router = useRouter()
-	const searchParams = useSearchParams()
-	const token = searchParams.get("token")
+	const [token, setToken] = useState<string | null>(null)
+
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search)
+		setToken(params.get("token"))
+	}, [])
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
