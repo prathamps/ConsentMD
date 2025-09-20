@@ -166,6 +166,8 @@ blockchain-network/org2/agreement_cc.tar.gz
 api/database/data
 
 
-.env
-
+*.env
 aws
+ui-old
+Apache Conf/resp.json
+.vscode
