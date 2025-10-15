@@ -228,7 +228,7 @@ Each report (under `results/single-<timestamp>/`) contains the exact Caliper con
 
 ### Further Reading
 
-- Consentio Paper: *Fine-grained consent management for blockchain-based EHRs* (University of Ottawa)
+- Consentio Paper: *Fine-grained consent management for blockchain-based EHRs* (University of Waterloo)
 - Hyperledger Fabric Docs: [https://hyperledger-fabric.readthedocs.io](https://hyperledger-fabric.readthedocs.io)
 - Hyperledger Caliper Docs: [https://hyperledger.github.io/caliper](https://hyperledger.github.io/caliper)
 
