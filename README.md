@@ -30,28 +30,22 @@ ConsentMD brings the "Consentio" research model to life: patients stay in contro
 
 ## System Architecture
 
-```
-┌──────────────┐    REST API         ┌────────────┐
-│ React Client │ ─────────────────▶ │  API Tier  │
-└──────────────┘                    │ (Node/Express, JWT auth, audit logs)
-                                     └────────────┘
-                                            │ Fabric SDK
-                                            ▼
-                                     ┌───────────────┐
-                                     │ Fabric Gateway│
-                                     │  (Org1/Org2)  │
-                                     └───────────────┘
-                                            │ Endorsement
-                                            ▼
-                ┌────────────────────────────────────────────────┐
-                │ Hyperledger Fabric Network                     │
-                │  • Orderer Org                                 │
-                │  • Org1 MSP  (patients)                        │
-                │  • Org2 MSP  (providers)                       │
-                │  • CouchDB state database                      │
-                │  • Chaincode: MedicalConsentContract           │
-                └────────────────────────────────────────────────┘
-```
+
+<img width="3023" height="2094" alt="image" src="https://github.com/user-attachments/assets/7b6e1db7-f56c-4071-919b-c1296f1bd3f6" />
+
+
+
+## System Flow
+
+
+<img width="4744" height="1070" alt="image" src="https://github.com/user-attachments/assets/638f3b75-4a62-402d-94be-97da1e4b74ae" />
+
+<img width="4824" height="1792" alt="image" src="https://github.com/user-attachments/assets/d3c4e876-1f48-4e09-a642-00d10d8356c7" />
+
+<img width="4070" height="1619" alt="image" src="https://github.com/user-attachments/assets/57d3b71f-5c91-498c-9942-e64ebe56e975" />
+
+<img width="6466" height="1472" alt="image" src="https://github.com/user-attachments/assets/4734ceb4-db75-435b-bc02-958fe2795e70" />
+
 
 Additional components:
 
