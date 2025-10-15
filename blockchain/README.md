@@ -90,6 +90,14 @@ The scripts wrap the Fabric lifecycle commands so you only need to edit the smar
 
 ---
 
+## Sequence Diagrams
+
+<img width="3372" height="2829" alt="image" src="https://github.com/user-attachments/assets/7f46d24e-d364-4ec2-90cf-22bd8cf4aadd" />
+
+<img width="3168" height="2530" alt="image" src="https://github.com/user-attachments/assets/8192dcee-ed50-4be6-b773-4696456448f5" />
+
+
+
 ## Utility Scripts
 
 | Script | Purpose |
