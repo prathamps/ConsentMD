@@ -1,28 +1,34 @@
 {
-	"name": "caliper-benchmarks-local",
+	"name": "consent-management-caliper-benchmark",
 	"version": "1.0.0",
-	"description": "",
+	"description": "Hyperledger Caliper benchmark tests for ConsentMD consent management system",
 	"main": "index.js",
 	"scripts": {
-		"test": "node scripts/validation/test-validation.js",
-		"benchmark": "caliper launch manager --caliper-networkconfig networks/fabric/medical-consent-network.yaml --caliper-benchconfig benchmarks/scenario/simple/medical-consent/config.yaml --caliper-bind-sut fabric:2.2",
-		"validate": "node scripts/validation/index.js",
-		"validate:network": "node scripts/validation/index.js --network-only",
-		"validate:chaincode": "node scripts/validation/index.js --chaincode-only",
-		"validate:quick": "node scripts/validation/index.js --quick",
-		"test:validation": "node scripts/validation/test-validation.js"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"benchmark": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management-suite.yaml --caliper-flow-only-test",
+		"benchmark-consent-granting": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/consent-granting-benchmark.yaml --caliper-flow-only-test",
+		"benchmark-record-access": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/record-access-benchmark.yaml --caliper-flow-only-test",
+		"benchmark-consent-revocation": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/consent-revocation-benchmark.yaml --caliper-flow-only-test",
+		"benchmark-mixed": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/mixed-workload-benchmark.yaml --caliper-flow-only-test"
 	},
-	"keywords": [],
-	"author": "",
-	"license": "ISC",
+	"keywords": [
+		"hyperledger",
+		"caliper",
+		"fabric",
+		"blockchain",
+		"benchmark",
+		"consent-management",
+		"healthcare"
+	],
+	"author": "ConsentMD Team",
+	"license": "Apache-2.0",
 	"dependencies": {
-		"fabric-network": "^2.2.12",
-		"fabric-ca-client": "^2.2.12",
-		"js-yaml": "^4.1.0",
-		"nanoid": "^3.3.2",
-		"uuid": "^8.1.0"
+		"@hyperledger/caliper-cli": "^0.6.0",
+		"@hyperledger/caliper-core": "^0.6.0",
+		"@hyperledger/caliper-fabric": "^0.6.0"
 	},
-	"devDependencies": {
-		"@hyperledger/caliper-cli": "^0.5.0"
+	"engines": {
+		"node": ">=18.0.0",
+		"npm": ">=8.0.0"
 	}
 }

@@ -1,0 +1,49 @@
+name: ConsentMD Benchmark Network
+version: "2.0.0"
+
+caliper:
+  blockchain: fabric
+
+channels:
+  - channelName: mychannel
+    contracts:
+      - id: medicalconsent
+        version: "1.0"
+        language: javascript
+        path: ../../../artifacts/chaincode/javascript
+        metadataPath: ../../../artifacts/chaincode/javascript/metadata
+
+organizations:
+  - mspid: Org1MSP
+    identities:
+      certificates:
+        - name: "User1"
+          clientPrivateKey:
+            path: "../../../artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/keystore/priv_sk"
+          clientSignedCert:
+            path: "../../../artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/User1@org1.example.com/msp/signcerts/User1@org1.example.com-cert.pem"
+        - name: "Admin"
+          clientPrivateKey:
+            path: "../../../artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/keystore/priv_sk"
+          clientSignedCert:
+            path: "../../../artifacts/channel/crypto-config/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/Admin@org1.example.com-cert.pem"
+    connectionProfile:
+      path: "./connection-profiles/org1-connection-profile.yaml"
+      discover: true
+
+  - mspid: Org2MSP
+    identities:
+      certificates:
+        - name: "User1"
+          clientPrivateKey:
+            path: "../../../artifacts/channel/crypto-config/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/keystore/priv_sk"
+          clientSignedCert:
+            path: "../../../artifacts/channel/crypto-config/peerOrganizations/org2.example.com/users/User1@org2.example.com/msp/signcerts/User1@org2.example.com-cert.pem"
+        - name: "Admin"
+          clientPrivateKey:
+            path: "../../../artifacts/channel/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/keystore/priv_sk"
+          clientSignedCert:
+            path: "../../../artifacts/channel/crypto-config/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts/Admin@org2.example.com-cert.pem"
+    connectionProfile:
+      path: "./connection-profiles/org2-connection-profile.yaml"
+      discover: true

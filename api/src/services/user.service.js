@@ -36,7 +36,6 @@ const createUser = async (userBody) => {
 
   // 5. Fetch and save the blockchain ID (with delay to allow network propagation)
   try {
-    // Wait a moment for the identity to propagate through the network
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const idBuffer = await evaluateTransaction(orgName, user.email, 'getMyId');

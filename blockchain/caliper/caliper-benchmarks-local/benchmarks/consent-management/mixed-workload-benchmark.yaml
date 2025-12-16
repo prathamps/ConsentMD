@@ -1,0 +1,69 @@
+test:
+  name: Mixed Workload Performance Test
+  description: 5-minute performance test combining all consent management operations
+  workers:
+    number: 2
+  rounds:
+    - label: mixed-workload-warmup
+      description: Warmup phase for mixed operations
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: workloads/mixed-workload.js
+        arguments:
+          patientCount: 15
+          doctorCount: 8
+          recordsPerPatient: 3
+          operationWeights:
+            grantConsent: 0.4
+            recordAccess: 0.4
+            revokeConsent: 0.2
+    - label: mixed-workload-main
+      description: Main mixed workload performance test (5 minutes)
+      txDuration: 300
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 25
+      workload:
+        module: workloads/mixed-workload.js
+        arguments:
+          patientCount: 15
+          doctorCount: 8
+          recordsPerPatient: 3
+          operationWeights:
+            grantConsent: 0.4
+            recordAccess: 0.4
+            revokeConsent: 0.2
+
+monitors:
+  resource:
+    - module: prometheus
+      options:
+        url: "http://localhost:9090"
+        metrics:
+          include: [dev-.*, test-.*]
+          queries:
+            - name: "Avg Memory (MB)"
+              query: 'sum(container_memory_rss{name=~".+"}) by (name)'
+              step: 10
+              label: name
+              statistic: avg
+            - name: "CPU (%)"
+              query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+              step: 10
+              label: name
+              statistic: avg
+            - name: "Network In (MB)"
+              query: 'sum(rate(container_network_receive_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
+              step: 10
+              label: name
+              statistic: sum
+            - name: "Network Out (MB)"
+              query: 'sum(rate(container_network_transmit_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
+              step: 10
+              label: name
+              statistic: sum

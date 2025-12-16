@@ -1,0 +1,72 @@
+test:
+  name: Consent Granting Performance Test
+  description: 5-minute performance test for consent granting operations
+  workers:
+    number: 3
+  rounds:
+    - label: initialization
+      description: Initialize test data (patients, doctors, records)
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 20
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: initialization
+          patientsPerWorker: 50
+          doctorsPerWorker: 20
+          recordsPerWorker: 100
+    - label: consent-granting-warmup
+      description: Warmup phase for consent granting
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 10
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: granting
+    - label: consent-granting-main
+      description: Main consent granting performance test
+      txDuration: 300
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 50
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: granting
+    - label: cleanup
+      description: Clean up test data
+      txDuration: 30
+      rateControl:
+        type: fixed-rate
+        opts:
+          tps: 30
+      workload:
+        module: workloads/consent-granting.js
+        arguments:
+          mode: cleanup
+
+monitors:
+  resource:
+    - module: prometheus
+      options:
+        url: "http://localhost:9090"
+        metrics:
+          include: [dev-.*, test-.*]
+          queries:
+            - name: "Avg Memory (MB)"
+              query: 'sum(container_memory_rss{name=~".+"}) by (name)'
+              step: 10
+              label: name
+              statistic: avg
+            - name: "CPU (%)"
+              query: 'sum(rate(container_cpu_usage_seconds_total{name=~".+"}[1m])) by (name) * 100'
+              step: 10
+              label: name
+              statistic: avg
