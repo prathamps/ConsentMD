@@ -14,12 +14,13 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-NETWORK_CONFIG="networks/fabric/fabric-network.yaml"
+NETWORK_CONFIG="networks/fabric/consent-management-network.yaml"
 RESULTS_DIR="results/single-$(date +%Y%m%d_%H%M%S)"
 
 # Available benchmarks
 declare -A BENCHMARKS
 BENCHMARKS["consent-granting"]="benchmarks/consent-management/consent-granting-benchmark.yaml"
+BENCHMARKS["minimal-consent-granting"]="benchmarks/consent-management/minimal-consent-granting.yaml"
 BENCHMARKS["record-access"]="benchmarks/consent-management/record-access-benchmark.yaml"
 BENCHMARKS["consent-revocation"]="benchmarks/consent-management/consent-revocation-benchmark.yaml"
 BENCHMARKS["mixed-workload"]="benchmarks/consent-management/mixed-workload-benchmark.yaml"
@@ -32,6 +33,7 @@ show_usage() {
     echo ""
     echo "Available benchmark types:"
     echo "  consent-granting     - Test consent creation performance"
+    echo "  minimal-consent-granting - Minimal 5-minute consent grant smoke test"
     echo "  record-access        - Test record query performance"
     echo "  consent-revocation   - Test consent revocation performance"
     echo "  mixed-workload       - Test combined operations performance"

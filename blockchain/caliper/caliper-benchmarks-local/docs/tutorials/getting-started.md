@@ -161,7 +161,7 @@ Total execution time is approximately 25-30 minutes including setup and cleanup 
 
 ### Issue: "Network configuration not found"
 
-**Solution**: Verify that `networks/fabric/fabric-network.yaml` exists and contains correct network details.
+**Solution**: Verify that `networks/fabric/consent-management-network.yaml` exists and contains correct network details.
 
 ### Issue: "Chaincode not found" errors
 

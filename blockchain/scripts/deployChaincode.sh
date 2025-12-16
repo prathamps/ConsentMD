@@ -169,7 +169,7 @@ function createPatientRecord() {
 
     echo "Invoking createPatientRecord (as Patient ${patient_name} from Org${org_num})..."
 
-    # --- THE ROBUST  ---
+    # --- THE ROBUST FIX ---
     # 1. Capture ALL output (stdout and stderr) by redirecting stderr to stdout (2>&1).
     local invoke_output
     invoke_output=$(peer chaincode invoke -o localhost:7050 \
@@ -219,7 +219,7 @@ function grantConsent() {
 
     echo "Invoking grantConsent to give Doctor [${doctorId:0:30}...}] access to Record [${recordId}]..."
 
-    
+    # --- APPLY THE SAME ROBUST FIX ---
     local invoke_output
     invoke_output=$(peer chaincode invoke -o localhost:7050 \
         --ordererTLSHostnameOverride orderer.example.com --tls --cafile $ORDERER_CA \
@@ -279,7 +279,7 @@ function findAssetsByQuery() {
 
     echo "Querying with selector: ${queryString}..."
 
-    # --- THE DEFINITIVE  ---
+    # --- THE DEFINITIVE FIX ---
     # Step 1: Escape all the double quotes inside the incoming query string.
     # This turns {"a":"b"} into {\"a\":\"b\"}
     local escaped_query_string=$(echo "$queryString" | sed 's/"/\\"/g')
@@ -312,7 +312,7 @@ queryCommitted
 
 
 echo
-echo "===================== Starting Test Scenario ====================="
+echo "===================== Starting Test Scenario (FIXED) ====================="
 echo
 
 # Step 1: Register Dr. Alice (same as before)

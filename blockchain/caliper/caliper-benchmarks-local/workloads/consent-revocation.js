@@ -404,7 +404,9 @@ class ConsentRevocationWorkload extends WorkloadModuleBase {
 	 * Generate a unique doctor ID for this worker.
 	 */
 	generateDoctorId(doctorIndex) {
-		return `doctor_${this.workerIndex}_${doctorIndex}@org2.example.com`
+		// Use existing Org2MSP identities instead of creating new ones
+		const availableIdentities = ["_Org2MSP_User1", "_Org2MSP_Admin"]
+		return availableIdentities[doctorIndex % availableIdentities.length]
 	}
 
 	/**

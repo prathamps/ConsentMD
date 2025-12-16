@@ -126,7 +126,7 @@ echo ""
 
 # Configuration Files
 echo -e "${YELLOW}=== Configuration Files ===${NC}"
-check_file "Network config" "networks/fabric/fabric-network.yaml"
+check_file "Network config" "networks/fabric/consent-management-network.yaml"
 check_file "Consent granting benchmark" "benchmarks/consent-management/consent-granting-benchmark.yaml"
 check_file "Record access benchmark" "benchmarks/consent-management/record-access-benchmark.yaml"
 check_file "Consent revocation benchmark" "benchmarks/consent-management/consent-revocation-benchmark.yaml"
@@ -180,7 +180,7 @@ if command -v docker >/dev/null 2>&1; then
     
     echo -n "Checking for running Fabric containers... "
     if docker ps | grep -q hyperledger; then
-        local container_count=$(docker ps | grep hyperledger | wc -l)
+        container_count=$(docker ps | grep hyperledger | wc -l)
         echo -e "${GREEN}✓ Found $container_count Hyperledger containers${NC}"
         ((CHECKS_PASSED++))
     else

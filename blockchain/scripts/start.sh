@@ -4,7 +4,7 @@
 # 1)Create Certificate authority for all organization
 docker-compose -f ../artifacts/channel/create-certificate-with-ca/docker-compose.yaml   up -d --remove-orphans
 # --------------------------------------------------------------------------------------------
-
+sleep 10
 # Note: We are considering , we already created all participants certioficates
 
 # 2) Create Artifacts

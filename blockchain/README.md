@@ -1,101 +1,140 @@
-# Blockchain Network for ConsentMD
+# ConsentMD Fabric Network
 
-This document provides instructions for setting up and managing the Hyperledger Fabric network for the ConsentMD application.
+This package contains the Hyperledger Fabric network, chaincode sources, and automation scripts that power the ConsentMD consent-management platform.
 
-## Table of Contents
+---
 
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Network Setup](#network-setup)
-- [Chaincode](#chaincode)
-- [Scripts](#scripts)
+## Network Topology
 
-## Overview
+- **Organizations**
+  - `Org1MSP` – Patient services
+  - `Org2MSP` – Provider services
+  - Ordering service (Raft, three orderers)
+- **Peers**
+  - `peer0.org1.example.com` (CouchDB state database)
+  - `peer0.org2.example.com` (CouchDB state database)
+- **Channel**: `mychannel`
+- **Chaincode**: `medicalconsent` (JavaScript `MedicalConsentContract`)
 
-This blockchain network is built on Hyperledger Fabric and serves as the decentralized backend for ConsentMD. It is responsible for storing and managing medical consents in a secure and immutable way. The network consists of two peer organizations (Org1 and Org2) and an orderer organization.
+All container definitions live under `blockchain/artifacts` and are orchestrated with Docker Compose.
+
+---
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
+Install these tools before running the network:
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
-- [Node.js](https://nodejs.org/) (v14 or higher) and npm
-- [Go](https://golang.org/doc/install) (v1.15 or higher)
-- [Git](https://git-scm.com/downloads)
+| Tool | Version | Notes |
+|------|---------|-------|
+| Docker & Docker Compose | latest stable | Required for running Fabric components |
+| Node.js & npm | ≥ 16 | Used to package/install JavaScript chaincode |
+| Go | ≥ 1.18 | Required by Fabric toolchain (lifecycle packaging) |
+| jq, openssl | optional | Used by helper scripts |
 
-## Network Setup
+The Fabric binaries (`peer`, `osnadmin`, etc.) must be on your PATH if you plan to interact with the network manually.
 
-The scripts to manage the network are located in the `scripts` directory.
+---
 
-1.  **Start the Network:**
+## Starting the Network
 
-    This command will start the Fabric network, including peers, orderers, and CAs.
+All orchestration scripts reside in `blockchain/scripts`.
 
-    ```bash
-    cd V3/blockchain/scripts
-    ./start.sh
-    ```
+```bash
+cd blockchain/scripts
 
-2.  **Create a Channel:**
+# Optionally preset CouchDB credentials, then start everything
+./start-with-env.sh   # or ./start.sh if CouchDB defaults are already exported
 
-    This command creates a channel named `mychannel`.
+# The start script performs the following:
+#   1. Launches Fabric CAs via docker-compose
+#   2. Generates channel artifacts
+#   3. Starts orderers, peers, and CouchDB containers
+#   4. Creates channel "mychannel"
+#   5. Deploys the medicalconsent chaincode
+```
 
-    ```bash
-    ./createChannel.sh
-    ```
+When you are finished:
 
-3.  **Deploy the Chaincode:**
+```bash
+./stop.sh
+```
 
-    This command deploys the `MedicalConsentContract` chaincode.
+This tears down all containers defined in `artifacts/`.
 
-    ```bash
-    ./deployChaincode.sh
-    ```
+---
 
-4.  **Stop the Network:**
+## Chaincode Details
 
-    This command will stop and tear down the network.
-
-    ```bash
-    ./stop.sh
-    ```
-
-## Chaincode
-
-The primary chaincode for this network is the `MedicalConsentContract`.
-
-- **Name:** `medicalconsent`
-- **Language:** JavaScript
 - **Location:** `blockchain/artifacts/chaincode/javascript/`
-- **Contract:** `lib/MedicalConsentContract.js`
+- **Contract class:** `MedicalConsentContract`
+- **Key transaction functions:**
+  - `registerDoctorProfile(name, specialization)`
+  - `createPatientRecord(fileName, s3ObjectKey, fileHash, details)`
+  - `createMedicalRecord(patientId, details, fileName, s3ObjectKey, fileHash)`
+  - `grantConsent(recordId, doctorId)` / `revokeConsent(consentId)`
+  - `getRecordById(recordId)` and `findAssetsByQuery(query)`
+  - `removeFileFromRecord(recordId)`, `archiveMedicalRecord(recordId)`
+  - `getConsentStatus(consentId)` & `getAssetHistory(id)`
 
-### Transaction Functions
+For development changes, use:
 
-The following transaction functions are available in the `MedicalConsentContract`:
+```bash
+# Package, install, approve, and commit an updated chaincode
+./redeploy-chaincode.sh
 
-- **`registerDoctorProfile(name, specialization)`**: Allows a doctor to register their profile.
-- **`createPatientRecord(fileName, s3ObjectKey, fileHash, details)`**: Creates a new medical record initiated by a patient.
-- **`createMedicalRecord(patientId, recordDetails, fileName, s3ObjectKey, fileHash)`**: Creates a new medical record initiated by a doctor.
-- **`grantConsent(recordId, doctorId)`**: Grants a doctor access to a specific medical record.
-- **`revokeConsent(consentId)`**: Revokes a doctor's access to a medical record.
-- **`archiveMedicalRecord(recordId)`**: Archives a medical record (soft delete).
-- **`removeFileFromRecord(recordId)`**: Removes the file reference from a medical record.
-- **`addPrivateNoteToRecord(collection, recordId)`**: Adds a sensitive note to a medical record using a Private Data Collection.
-- **`updateRecordDetails(recordId, newDetails)`**: Updates the details of a medical record.
-- **`getRecordById(recordId)`**: Retrieves a medical record by its ID.
-- **`findAssetsByQuery(queryString)`**: Finds assets based on a CouchDB query string.
-- **`getAssetHistory(id)`**: Retrieves the transaction history for a specific asset.
+# Force rebuild and reinstall (cleans old package first)
+./force-rebuild-chaincode.sh
+```
 
-## Scripts
+The scripts wrap the Fabric lifecycle commands so you only need to edit the smart contract and rerun the helper.
 
-The `blockchain/scripts` directory contains several utility scripts for managing the network and chaincode:
+---
 
-- **`start.sh`**: Starts the Hyperledger Fabric network.
-- **`stop.sh`**: Stops the network and removes containers.
-- **`createChannel.sh`**: Creates the application channel.
-- **`deployChaincode.sh`**: Deploys the chaincode to the channel.
-- **`upgradeChaincodePolicy.sh`**: Upgrades the chaincode or its endorsement policy.
-- **`chaincode_test.sh`**: A script for testing chaincode functions.
-- **`envVar.sh`**: Sets environment variables for interacting with the network as a specific peer.
-- **`utils.sh`**: Contains utility functions used by other scripts.
+## Sequence Diagrams
+
+<img width="3372" height="2829" alt="image" src="https://github.com/user-attachments/assets/7f46d24e-d364-4ec2-90cf-22bd8cf4aadd" />
+
+<img width="3168" height="2530" alt="image" src="https://github.com/user-attachments/assets/8192dcee-ed50-4be6-b773-4696456448f5" />
+
+
+
+## Utility Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `start.sh` | Bring up CAs, peers, orderers, create channel, deploy chaincode |
+| `start-with-env.sh` | Sets default CouchDB credentials before running `start.sh` |
+| `stop.sh` | Tear down all Fabric containers |
+| `createChannel.sh` | Create/join channel `mychannel` (called by `start.sh`) |
+| `deployChaincode.sh` | Install and commit `medicalconsent` (called by `start.sh`) |
+| `redeploy-chaincode.sh` | Lifecycle upgrade for iterative development |
+| `force-rebuild-chaincode.sh` | Removes old packages before redeploying |
+| `chaincode_test.sh`, `test-endorsement.sh` | Convenience scripts for ad‑hoc testing |
+
+All scripts assume they are executed from `blockchain/scripts`.
+
+---
+
+## Verifying the Deployment
+
+After running `start.sh` you can confirm the network is healthy by running:
+
+```bash
+# List containers
+docker ps --format '{{.Names}}' | grep consent
+
+# Check installed chaincode
+peer lifecycle chaincode queryinstalled
+
+# Query chaincode from Org1 (peer binary must be configured)
+peer chaincode query \
+  -C mychannel \
+  -n medicalconsent \
+  -c '{"function":"getMyId","Args":[]}'
+```
+
+If you need to rotate credentials or adjust ports, edit the docker-compose files under `blockchain/artifacts` before starting the network.
+
+---
+
+For benchmark instructions, refer to `blockchain/caliper/caliper-benchmarks-local/README.md`. For the application services (API and React client), see their respective READMEs.

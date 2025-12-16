@@ -5,6 +5,66 @@ const { evaluateTransaction, submitTransaction } = require('../utils/blockchainU
 const { deleteFile, getSignedUrl } = require('../utils/fileUpload');
 
 /**
+ * Helper function to find a patient by blockchain ID with fallback strategies
+ * @param {string} patientId - The blockchain ID or email of the patient
+ * @returns {Promise<object>} The patient user object
+ */
+const findPatientByBlockchainId = async (patientId) => {
+  // First try: Find by blockchainId
+  let patient = await User.findOne({ blockchainId: patientId });
+  
+  if (patient) {
+    return patient;
+  }
+  
+  // Second try: Find by email (fallback for users without populated blockchainId)
+  patient = await User.findOne({ email: patientId, role: 'patient' });
+  
+  if (patient) {
+    // Try to fetch and update the blockchain ID for this patient
+    try {
+      const idBuffer = await evaluateTransaction('org1', patient.email, 'getMyId');
+      const fetchedBlockchainId = idBuffer.toString();
+      patient.blockchainId = fetchedBlockchainId;
+      await patient.save();
+      console.log(`Updated blockchain ID for patient ${patient.email}: ${fetchedBlockchainId}`);
+    } catch (error) {
+      console.warn(`Could not fetch blockchain ID for patient ${patient.email}:`, error.message);
+    }
+    return patient;
+  }
+  
+  // Third try: Search through patients without blockchain IDs
+  const patientsWithoutBlockchainId = await User.find({ 
+    role: 'patient', 
+    $or: [
+      { blockchainId: { $exists: false } },
+      { blockchainId: null },
+      { blockchainId: '' }
+    ]
+  });
+  
+  for (const p of patientsWithoutBlockchainId) {
+    try {
+      const idBuffer = await evaluateTransaction('org1', p.email, 'getMyId');
+      const fetchedBlockchainId = idBuffer.toString();
+      
+      if (fetchedBlockchainId === patientId) {
+        p.blockchainId = fetchedBlockchainId;
+        await p.save();
+        console.log(`Found and updated blockchain ID for patient ${p.email}: ${fetchedBlockchainId}`);
+        return p;
+      }
+    } catch (error) {
+      // Continue to next patient if blockchain ID fetch fails
+      continue;
+    }
+  }
+  
+  return null;
+};
+
+/**
  * Fetches a single medical record from the blockchain.
  * Can be called by either a doctor or the patient who owns the record.
  * Access control is enforced by the chaincode.
@@ -141,8 +201,9 @@ const createMedicalRecordByDoctor = async (user, recordBody) => {
     throw new ApiError(httpStatus.FORBIDDEN, 'Only doctors can create records for patients.');
   }
 
-  // Find the patient's full user object by their blockchain ID
-  const patient = await User.findOne({ blockchainId: patientId });
+  // Find the patient using the helper function with fallback strategies
+  const patient = await findPatientByBlockchainId(patientId);
+  
   if (!patient) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Patient with the provided blockchain ID not found.');
   }
@@ -396,4 +457,5 @@ module.exports = {
   getAccessibleRecords,
   deleteFileFromRecord,
   getRecordFileUrl,
+  findPatientByBlockchainId,
 };

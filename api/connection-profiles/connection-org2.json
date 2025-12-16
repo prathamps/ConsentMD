@@ -1,78 +1,79 @@
 {
-  "name": "Medical Consent Management-org2",
-  "version": "1.0.0",
-  "client": {
-    "organization": "Org2",
-    "connection": {
-      "timeout": {
-        "peer": {
-          "endorser": "300"
+    "name": "Medical Consent Management-org2",
+    "version": "1.0.0",
+    "client": {
+      "organization": "Org2",
+      "connection": {
+        "timeout": {
+          "peer": {
+            "endorser": "300"
+          },
+          "orderer": "300"
+        }
+      }
+    },
+    "organizations": {
+      "Org2": {
+        "mspid": "Org2MSP",
+        "peers": ["peer0.org2.example.com"],
+        "certificateAuthorities": ["ca.org2.example.com"]
+      }
+    },
+    "orderers": {
+      "orderer.example.com": {
+        "url": "grpcs://orderer.example.com:7050",
+        "tlsCACerts": {
+          "path": "/usr/src/blockchain/artifacts/channel/crypto-config/ordererOrganizations/example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
         },
-        "orderer": "300"
-      }
-    }
-  },
-  "organizations": {
-    "Org2": {
-      "mspid": "Org2MSP",
-      "peers": ["peer0.org2.example.com"],
-      "certificateAuthorities": ["ca.org2.example.com"]
-    }
-  },
-  "orderers": {
-    "orderer.example.com": {
-      "url": "grpcs://orderer.example.com:7050",
-      "tlsCACerts": {
-        "path": "/usr/src/blockchain/artifacts/channel/crypto-config/ordererOrganizations/example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
+        "grpcOptions": {
+          "ssl-target-name-override": "orderer.example.com",
+          "hostnameOverride": "orderer.example.com"
+        }
       },
-      "grpcOptions": {
-        "ssl-target-name-override": "orderer.example.com",
-        "hostnameOverride": "orderer.example.com"
-      }
-    },
-    "orderer2.example.com": {
-      "url": "grpcs://orderer2.example.com:7050",
-      "tlsCACerts": {
-        "path": "/usr/src/blockchain/artifacts/channel/crypto-config/ordererOrganizations/example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
+      "orderer2.example.com": {
+        "url": "grpcs://orderer2.example.com:7050",
+        "tlsCACerts": {
+          "path": "/usr/src/blockchain/artifacts/channel/crypto-config/ordererOrganizations/example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
+        },
+        "grpcOptions": {
+          "ssl-target-name-override": "orderer2.example.com",
+          "hostnameOverride": "orderer2.example.com"
+        }
       },
-      "grpcOptions": {
-        "ssl-target-name-override": "orderer2.example.com",
-        "hostnameOverride": "orderer2.example.com"
+      "orderer3.example.com": {
+        "url": "grpcs://orderer3.example.com:7050",
+        "tlsCACerts": {
+          "path": "/usr/src/blockchain/artifacts/channel/crypto-config/ordererOrganizations/example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
+        },
+        "grpcOptions": {
+          "ssl-target-name-override": "orderer3.example.com",
+          "hostnameOverride": "orderer3.example.com"
+        }
       }
     },
-    "orderer3.example.com": {
-      "url": "grpcs://orderer3.example.com:7050",
-      "tlsCACerts": {
-        "path": "/usr/src/blockchain/artifacts/channel/crypto-config/ordererOrganizations/example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
-      },
-      "grpcOptions": {
-        "ssl-target-name-override": "orderer3.example.com",
-        "hostnameOverride": "orderer3.example.com"
+    "peers": {
+      "peer0.org2.example.com": {
+        "url": "grpcs://peer0.org2.example.com:9051",
+        "tlsCACerts": {
+          "path": "/usr/src/blockchain/artifacts/channel/crypto-config/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem"
+        },
+        "grpcOptions": {
+          "ssl-target-name-override": "peer0.org2.example.com",
+          "hostnameOverride": "peer0.org2.example.com"
+        }
       }
-    }
-  },
-  "peers": {
-    "peer0.org2.example.com": {
-      "url": "grpcs://peer0.org2.example.com:9051",
-      "tlsCACerts": {
-        "path": "/usr/src/blockchain/artifacts/channel/crypto-config/peerOrganizations/org2.example.com/tlsca/tlsca.org2.example.com-cert.pem"
-      },
-      "grpcOptions": {
-        "ssl-target-name-override": "peer0.org2.example.com",
-        "hostnameOverride": "peer0.org2.example.com"
-      }
-    }
-  },
-  "certificateAuthorities": {
-    "ca.org2.example.com": {
-      "url": "https://ca.org2.example.com:8054",
-      "caName": "ca.org2.example.com",
-      "tlsCACerts": {
-        "path": "/usr/src/blockchain/artifacts/channel/crypto-config/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem"
-      },
-      "httpOptions": {
-        "verify": false
+    },
+    "certificateAuthorities": {
+      "ca.org2.example.com": {
+        "url": "https://ca.org2.example.com:8054",
+        "caName": "ca.org2.example.com",
+        "tlsCACerts": {
+          "path": "/usr/src/blockchain/artifacts/channel/crypto-config/peerOrganizations/org2.example.com/ca/ca.org2.example.com-cert.pem"
+        },
+        "httpOptions": {
+          "verify": false
+        }
       }
     }
   }
-}
+  

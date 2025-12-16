@@ -76,7 +76,7 @@ function grantConsent() {
 
     echo "Invoking grantConsent to give Doctor [${doctorId}] access to Record [${recordId}]..."
 
-    # --- Apply the same robust pipeline here ---
+    # --- FIX: Apply the same robust pipeline here ---
     local result_payload=$(peer chaincode invoke -o localhost:7050 \
         --ordererTLSHostnameOverride orderer.example.com --tls --cafile $ORDERER_CA \
         -C $CHANNEL_NAME -n ${CC_NAME} \
@@ -120,7 +120,7 @@ function findAssetsByQuery() {
 
     echo "Querying with selector: ${queryString}..."
 
-    # --- THE DEFINITIVE ---
+    # --- THE DEFINITIVE FIX ---
     # Step 1: Escape all the double quotes inside the incoming query string.
     # This turns {"a":"b"} into {\"a\":\"b\"}
     local escaped_query_string=$(echo "$queryString" | sed 's/"/\\"/g')

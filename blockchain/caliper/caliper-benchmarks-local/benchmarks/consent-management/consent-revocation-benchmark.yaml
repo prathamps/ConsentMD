@@ -15,9 +15,9 @@ test:
         module: workloads/consent-granting.js
         arguments:
           mode: initialization
-          patientsPerWorker: 50
-          doctorsPerWorker: 20
-          recordsPerWorker: 100
+          patientCount: 50
+          doctorCount: 20
+          recordsPerPatient: 100
     - label: consent-setup
       description: Create consent relationships for revocation testing
       txDuration: 90

@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-NETWORK_CONFIG="networks/fabric/fabric-network.yaml"
+NETWORK_CONFIG="networks/fabric/consent-management-network.yaml"
 RESULTS_DIR="results/$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="$RESULTS_DIR/execution.log"
 

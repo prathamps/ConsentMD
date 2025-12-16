@@ -15,6 +15,9 @@ test:
         module: workloads/consent-granting.js
         arguments:
           mode: initialization
+          patientCount: 20
+          doctorCount: 10
+          recordsPerPatient: 15
     - label: consent-granting
       description: Benchmark consent granting performance
       txNumber: 300

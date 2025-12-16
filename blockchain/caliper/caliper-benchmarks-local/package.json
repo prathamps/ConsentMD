@@ -23,9 +23,11 @@
 	"author": "ConsentMD Team",
 	"license": "Apache-2.0",
 	"dependencies": {
+		"@grpc/grpc-js": "^1.10.3",
 		"@hyperledger/caliper-cli": "^0.6.0",
 		"@hyperledger/caliper-core": "^0.6.0",
-		"@hyperledger/caliper-fabric": "^0.6.0"
+		"@hyperledger/caliper-fabric": "^0.6.0",
+		"@hyperledger/fabric-gateway": "^1.5.0"
 	},
 	"engines": {
 		"node": ">=18.0.0",
