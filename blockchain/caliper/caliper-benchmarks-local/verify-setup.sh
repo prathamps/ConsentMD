@@ -126,7 +126,13 @@ echo ""
 
 # Configuration Files
 echo -e "${YELLOW}=== Configuration Files ===${NC}"
-check_file "Network config" "networks/fabric/consent-management-network.yaml"
+check_file "Network config (static fallback)" "networks/fabric/consent-management-network.yaml"
+if [ -f "networks/fabric/bench-network.yaml" ]; then
+    check_file "Generated bench network config" "networks/fabric/bench-network.yaml"
+else
+    echo -e "${YELLOW}⚠ networks/fabric/bench-network.yaml missing — run: node setup/provision-identities.js${NC}"
+    WARNINGS=$((WARNINGS + 1))
+fi
 check_file "Consent granting benchmark" "benchmarks/consent-management/consent-granting-benchmark.yaml"
 check_file "Record access benchmark" "benchmarks/consent-management/record-access-benchmark.yaml"
 check_file "Consent revocation benchmark" "benchmarks/consent-management/consent-revocation-benchmark.yaml"

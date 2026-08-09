@@ -1,0 +1,50 @@
+# Optional persistence overlay.
+#
+#   docker compose -f docker-compose.yaml -f docker-compose.persist.yaml up -d
+#   (or: ./consentmd up --persist)
+#
+# The base compose deliberately mounts NO /var/hyperledger/production volumes,
+# so `down` destroys the ledger and every benchmark repetition starts from an
+# identical clean state. That is what makes repetitions independent draws
+# rather than a monotonically growing state database.
+#
+# It also means a stopped orderer has no write-ahead log and therefore cannot
+# rejoin the Raft cluster with its log intact. For the consenter-failure
+# experiment (stop orderer2 mid-benchmark, show throughput continuity, then
+# restart it and show it catches up) that durability is required — hence this
+# overlay.
+#
+# Do NOT use this for headline measurement runs: carrying state across
+# repetitions is exactly the confound the base configuration avoids.
+
+volumes:
+  orderer0-data:
+  orderer2-data:
+  orderer3-data:
+  peer0-org1-data:
+  peer0-org2-data:
+  couchdb0-data:
+  couchdb1-data:
+
+services:
+  orderer.example.com:
+    volumes:
+      - orderer0-data:/var/hyperledger/production
+  orderer2.example.com:
+    volumes:
+      - orderer2-data:/var/hyperledger/production
+  orderer3.example.com:
+    volumes:
+      - orderer3-data:/var/hyperledger/production
+  peer0.org1.example.com:
+    volumes:
+      - peer0-org1-data:/var/hyperledger/production
+  peer0.org2.example.com:
+    volumes:
+      - peer0-org2-data:/var/hyperledger/production
+  couchdb0:
+    volumes:
+      - couchdb0-data:/opt/couchdb/data
+  couchdb1:
+    volumes:
+      - couchdb1-data:/opt/couchdb/data

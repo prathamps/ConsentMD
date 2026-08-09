@@ -162,19 +162,28 @@ Environment variables (JWT secrets, Fabric connection profiles, off-chain storag
 
 ## Benchmarking with Hyperledger Caliper
 
-The Caliper workspace under `blockchain/caliper/caliper-benchmarks-local` bundles network profiles, workload modules, and scripts.
+The Caliper workspace under `blockchain/caliper/caliper-benchmarks-local` bundles network profiles, workload modules, and scripts. The measurement methodology — 10 repetitions per benchmark, p50/p95/p99 tail latency, dataset manifests, an explicit failure definition, and fixed-interval resource sampling — is documented in [`blockchain/caliper/caliper-benchmarks-local/docs/methodology.md`](blockchain/caliper/caliper-benchmarks-local/docs/methodology.md).
 
 ### Running a Benchmark
 
 ```bash
 cd blockchain/caliper/caliper-benchmarks-local
-./run-single-benchmark.sh consent-granting
-# other options: record-access, consent-revocation, mixed-workload, ...
+node setup/provision-identities.js      # one-time: CA-enrolled identities with role attributes
+./run-single-benchmark.sh minimal-consent-granting   # ~1 min smoke test
+./run-benchmarks.sh                     # full campaign: 4 benchmarks x 10 runs + aggregation
 ```
 
-- Results are timestamped under `blockchain/caliper/caliper-benchmarks-local/results/single-YYYYMMDD_HHMMSS/`.
-- Each run produces `execution.log` and an HTML report summarizing throughput, latency, and failure counts.
-- The network profile lives at `networks/fabric/consent-management-network.yaml` (two orgs, single channel, JS SDK gateway).
+- Results are timestamped under `blockchain/caliper/caliper-benchmarks-local/results/`; each session produces per-run HTML reports plus `summary.md`/`summary.csv` with mean ± std across runs and pooled latency percentiles, and 300-DPI CPU/memory figures.
+- The generated network profile (`networks/fabric/bench-network.yaml`) carries CA-enrolled benchmark identities; the chaincode's fail-closed policy denies identities without the CA-issued `organization` attribute.
+
+### Companion evaluations
+
+| Directory | Purpose |
+|---|---|
+| `baseline/` | Non-blockchain equivalent (Express + SQLite + append-only audit log) with a matching load generator, to quantify blockchain overhead |
+| `experiments/read-bottleneck/` | Attributes read latency to CouchDB vs peer vs gateway, with and without the consent index |
+| `experiments/security-bypass/` | Live test that a compromised API tier cannot read unauthorized records (chaincode-level denial) |
+| `experiments/file-storage/` | Benchmarks the off-chain medical-file upload/download path |
 
 ### Latest Azure B1ms Measurements
 

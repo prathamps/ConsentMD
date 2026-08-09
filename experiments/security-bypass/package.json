@@ -1,0 +1,12 @@
+{
+	"name": "consentmd-exp-security-bypass",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Adversarial live-network test: a compromised gateway cannot read unauthorized data",
+	"engines": {
+		"node": ">=18"
+	},
+	"dependencies": {
+		"fabric-network": "^2.2.2"
+	}
+}

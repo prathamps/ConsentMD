@@ -171,3 +171,21 @@ aws
 ui-old
 Apache Conf/resp.json
 .vscode
+# Fabric binaries + config downloaded by install.sh
+/bin/
+/config/
+/builders/
+
+# Benchmark artifacts: generated identities (PRIVATE KEYS), network config, results
+blockchain/caliper/caliper-benchmarks-local/networks/fabric/bench-identities/
+blockchain/caliper/caliper-benchmarks-local/networks/fabric/bench-network.yaml
+blockchain/caliper/caliper-benchmarks-local/results/
+baseline/results/
+baseline/data/
+baseline/*.db
+baseline/*.db-*
+experiments/*/results/
+
+# Stray Caliper run artifacts at the workspace root
+blockchain/caliper/caliper-benchmarks-local/report.html
+blockchain/caliper/caliper-benchmarks-local/tmp/

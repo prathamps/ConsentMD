@@ -1,31 +1,22 @@
+# Smallest possible smoke test: verifies identities, chaincode, and workload
+# wiring in under a minute. Run this first after provisioning identities.
 test:
-  name: Consent Granting Smoke
-  description: Minimal 5-minute benchmark focusing on consent grants
+  name: Minimal Consent Granting Smoke Test
+  description: Tiny consent-granting round for setup verification
   workers:
     number: 1
   rounds:
-    - label: warmup
-      txDuration: 30
+    - label: minimal-consent-granting
+      description: Smoke test round
+      txNumber: 10
       rateControl:
         type: fixed-rate
         opts:
-          tps: 10
+          tps: 2
       workload:
         module: workloads/consent-granting.js
         arguments:
-          mode: granting
           patientCount: 2
           doctorCount: 2
-          recordsPerPatient: 5
-    - label: grant
-      txDuration: 300
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 20
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: granting
-monitors:
-  resource: []
+          recordsPerPatient: 1
+          seedConsentRatio: 0

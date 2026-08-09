@@ -1,0 +1,18 @@
+{
+	"name": "consentmd-baseline",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Non-blockchain baseline (Express + SQLite) used to quantify blockchain overhead in ConsentMD",
+	"main": "server.js",
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"start": "node server.js",
+		"load-test": "node load-test.js"
+	},
+	"dependencies": {
+		"better-sqlite3": "^11.10.0",
+		"express": "^4.21.2"
+	}
+}

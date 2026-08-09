@@ -1,25 +1,16 @@
+# Consent-granting benchmark.
+# Dataset is seeded by the workload itself (see src/fixtures.js) and its exact
+# size is written to the run's dataset manifest. Repetitions, latency
+# percentiles, and the failure definition are handled by run-benchmarks.sh +
+# src/aggregate-results.js (docs/methodology.md).
 test:
   name: Consent Granting Performance Test
-  description: 5-minute performance test for consent granting operations
+  description: Consent granting throughput and latency
   workers:
-    number: 3
+    number: 2
   rounds:
-    - label: initialization
-      description: Initialize test data (patients, doctors, records)
-      txDuration: 30
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 20
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: initialization
-          patientCount: 50
-          doctorCount: 20
-          recordsPerPatient: 100
     - label: consent-granting-warmup
-      description: Warmup phase for consent granting
+      description: Short warmup so JIT/gRPC/session caches are hot before measurement
       txDuration: 30
       rateControl:
         type: fixed-rate
@@ -27,10 +18,13 @@ test:
           tps: 10
       workload:
         module: workloads/consent-granting.js
-        arguments:
-          mode: granting
+        arguments: &dataset
+          patientCount: 10          # per worker
+          doctorCount: 5            # per worker
+          recordsPerPatient: 3
+          seedConsentRatio: 0.2     # leave most pairs free to be granted
     - label: consent-granting-main
-      description: Main consent granting performance test
+      description: Main consent granting measurement round
       txDuration: 300
       rateControl:
         type: fixed-rate
@@ -38,19 +32,7 @@ test:
           tps: 50
       workload:
         module: workloads/consent-granting.js
-        arguments:
-          mode: granting
-    - label: cleanup
-      description: Clean up test data
-      txDuration: 30
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 30
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: cleanup
+        arguments: *dataset
 
 monitors:
   resource:
@@ -58,8 +40,11 @@ monitors:
       options:
         url: "http://localhost:9090"
         metrics:
-          include: [dev-.*, test-.*]
+          include: [dev-.*, peer.*, orderer.*, couchdb.*]
           queries:
+            # Sampled every 10 s from cAdvisor via Prometheus (reviewer item 15;
+            # the host-level docker-stats collector in monitoring/ is the
+            # source for the paper's resource figures).
             - name: "Avg Memory (MB)"
               query: 'sum(container_memory_rss{name=~".+"}) by (name)'
               step: 10

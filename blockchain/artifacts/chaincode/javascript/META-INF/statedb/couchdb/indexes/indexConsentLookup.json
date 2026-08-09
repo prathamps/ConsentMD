@@ -1,0 +1,8 @@
+{
+  "index": {
+    "fields": ["docType", "doctorId", "recordId", "status"]
+  },
+  "ddoc": "idxConsentLookupDoc",
+  "name": "index-consent-lookup",
+  "type": "json"
+}

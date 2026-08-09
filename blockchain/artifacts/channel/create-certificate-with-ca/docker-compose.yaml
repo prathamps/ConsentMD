@@ -1,14 +1,30 @@
-version: '2.1'
+# Fabric CA servers used to enroll every identity in the network.
+#
+# The `artifacts_test` network is declared here as a NON-external network with a
+# fixed name. Previously it was `external: {name: artifacts_test}`, which meant
+# this compose file could only start after ../../docker-compose.yaml had created
+# the network -- but blockchain/scripts/start.sh brings the CAs up FIRST, so a
+# clean clone always failed with "network artifacts_test declared as external,
+# but could not be found". Declaring it non-external in both files lets
+# whichever compose starts first create it, and the other attach to it.
+#
+# `version:` is omitted deliberately: it is obsolete in the Compose Spec and
+# emits a warning on Compose v2+.
+#
+# Readiness is polled host-side by blockchain/scripts/health.sh against
+# https://localhost:{7054,8054,9054}/cainfo. The fabric-ca image ships no
+# curl/wget, so an in-container healthcheck cannot work.
 
 networks:
   test:
-    external:
-      name: artifacts_test
+    name: artifacts_test
 
 services:
-
   ca_org1:
-    image: hyperledger/fabric-ca
+    # Pinned. This was `hyperledger/fabric-ca` (implicitly :latest) -- the only
+    # unpinned image in an otherwise fully version-matrixed stack, which made
+    # the CA the one component whose behaviour could change between runs.
+    image: hyperledger/fabric-ca:${FABRIC_CA_VERSION:-1.5.7}
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca.org1.example.com
@@ -21,11 +37,12 @@ services:
       - ./fabric-ca/org1:/etc/hyperledger/fabric-ca-server
     container_name: ca.org1.example.com
     hostname: ca.org1.example.com
+    restart: "no"
     networks:
       - test
 
   ca_org2:
-    image: hyperledger/fabric-ca
+    image: hyperledger/fabric-ca:${FABRIC_CA_VERSION:-1.5.7}
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca.org2.example.com
@@ -38,11 +55,12 @@ services:
       - ./fabric-ca/org2:/etc/hyperledger/fabric-ca-server
     container_name: ca.org2.example.com
     hostname: ca.org2.example.com
+    restart: "no"
     networks:
       - test
 
   ca_orderer:
-    image: hyperledger/fabric-ca
+    image: hyperledger/fabric-ca:${FABRIC_CA_VERSION:-1.5.7}
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-orderer
@@ -54,5 +72,7 @@ services:
     volumes:
       - ./fabric-ca/ordererOrg:/etc/hyperledger/fabric-ca-server
     container_name: ca_orderer
+    hostname: ca-orderer
+    restart: "no"
     networks:
       - test
