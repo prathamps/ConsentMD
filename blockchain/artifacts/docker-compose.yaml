@@ -1,256 +1,211 @@
-version: "2.1"
+# ConsentMD Fabric network.
+#
+# Topology (this file is the ground truth; see docs and the paper's Fig. 1):
+#   - 3 etcdraft (Raft) orderers, ALL in a single OrdererMSP, ALL on this host.
+#     That exercises the Raft code path but is a single administrative and a
+#     single fault domain -- it is not a distributed-trust ordering service.
+#   - 2 peers, one per application org (Org1 = doctors, Org2 = patients).
+#   - 2 CouchDB state databases, one per peer.
+#
+# Changes from the original file, each deliberate:
+#   * `version:` removed -- obsolete in the Compose Spec, warns on Compose v2+.
+#   * network given an explicit name instead of relying on Compose deriving
+#     "artifacts_test" from the parent directory name. The peers hardcode
+#     CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=artifacts_test, so a rename of the
+#     directory would previously have broken chaincode container networking.
+#   * `couchdb2` DELETED. It was an orphan: peer0.org1 -> couchdb0:5984 and
+#     peer0.org2 -> couchdb1:5984, and nothing referenced couchdb2. It cost
+#     ~100 MB for nothing. (Note: deploy/apache proxied the public
+#     "org2-couchdb" vhost at :7984 -- i.e. at this orphan -- so that endpoint
+#     always showed an empty database. Fixed alongside this change.)
+#   * readiness is polled HOST-SIDE by blockchain/scripts/health.sh against the
+#     published ports, not by container healthchecks. The Fabric orderer/peer/ca
+#     images are built on fabric-baseos and do not ship curl or wget, so an
+#     in-container HTTP healthcheck would fail permanently -- and a permanently
+#     unhealthy container plus `depends_on: condition: service_healthy` deadlocks
+#     bring-up. Polling from the host also needs no assumption about image
+#     contents and is what `consentmd status` uses anyway.
+#   * peer operations endpoint + prometheus metrics ENABLED (were commented
+#     out). Orderers already exposed metrics; peers did not, which meant no
+#     server-side endorsement/commit timing was observable at all. The
+#     evaluation harness scrapes the plaintext /metrics endpoint directly at
+#     1 Hz -- no Prometheus server is required. This is recorded in the run
+#     manifest and included in the observer-effect arm.
+#   * peer0.org2 gained the `depends_on: couchdb1` it was missing.
+#
+# Persistence: no /var/hyperledger/production volumes are mounted, so the
+# ledger is destroyed on `down`. That is intentional for measurement (every
+# repetition starts from an identical clean state). For the consenter-restart
+# experiment, overlay docker-compose.persist.yaml.
 
 networks:
   test:
+    name: artifacts_test
+
+x-orderer-common: &orderer-common
+  image: hyperledger/fabric-orderer:2.5.0
+  working_dir: /root
+  command: orderer
+  networks:
+    - test
+
+x-orderer-env: &orderer-env
+  FABRIC_LOGGING_SPEC: INFO
+  ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
+  ORDERER_GENERAL_LISTENPORT: "7050"
+  ORDERER_GENERAL_LOCALMSPID: OrdererMSP
+  ORDERER_GENERAL_LOCALMSPDIR: /var/hyperledger/orderer/msp
+  ORDERER_GENERAL_TLS_ENABLED: "true"
+  ORDERER_GENERAL_TLS_PRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+  ORDERER_GENERAL_TLS_CERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+  ORDERER_GENERAL_TLS_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+  ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+  ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+  ORDERER_GENERAL_CLUSTER_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+  # No system channel: channels are joined via `osnadmin channel join`.
+  ORDERER_GENERAL_BOOTSTRAPMETHOD: none
+  ORDERER_CHANNELPARTICIPATION_ENABLED: "true"
+  ORDERER_ADMIN_TLS_ENABLED: "true"
+  ORDERER_ADMIN_TLS_CERTIFICATE: /var/hyperledger/orderer/tls/server.crt
+  ORDERER_ADMIN_TLS_PRIVATEKEY: /var/hyperledger/orderer/tls/server.key
+  ORDERER_ADMIN_TLS_ROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+  ORDERER_ADMIN_TLS_CLIENTROOTCAS: "[/var/hyperledger/orderer/tls/ca.crt]"
+  ORDERER_METRICS_PROVIDER: prometheus
+
+x-peer-common: &peer-common
+  image: hyperledger/fabric-peer:2.5.0
+  labels:
+    service: hyperledger-fabric
+  networks:
+    - test
+
+x-peer-env: &peer-env
+  CORE_VM_ENDPOINT: unix:///host/var/run/docker.sock
+  # Must match the network name above, or chaincode containers cannot reach the peer.
+  CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE: artifacts_test
+  FABRIC_LOGGING_SPEC: info
+  CORE_LEDGER_STATE_STATEDATABASE: CouchDB
+  CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME: ${COUCHDB_USER}
+  CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD: ${COUCHDB_PASSWORD}
+  CORE_PEER_TLS_ENABLED: "true"
+  CORE_PEER_TLS_CERT_FILE: /etc/hyperledger/fabric/tls/server.crt
+  CORE_PEER_TLS_KEY_FILE: /etc/hyperledger/fabric/tls/server.key
+  CORE_PEER_TLS_ROOTCERT_FILE: /etc/hyperledger/fabric/tls/ca.crt
+  CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/fabric/msp
+  # Operations/metrics: enabled so endorsement and commit histograms are
+  # observable. Scraped directly as plaintext; no Prometheus server needed.
+  CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:9440
+  CORE_METRICS_PROVIDER: prometheus
+
+x-couchdb-common: &couchdb-common
+  image: couchdb:3.1.1
+  networks:
+    - test
 
 services:
   orderer.example.com:
+    <<: *orderer-common
     container_name: orderer.example.com
-    image: hyperledger/fabric-orderer:2.5.0
     environment:
-      - FABRIC_LOGGING_SPEC=INFO
-      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
-      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
-
-       # enabled TLS
-      - ORDERER_GENERAL_TLS_ENABLED=true
-      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-
-      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
-      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
-      - ORDERER_ADMIN_TLS_ENABLED=true
-      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_METRICS_PROVIDER=prometheus
-
-      - ORDERER_GENERAL_LISTENPORT=7050 
-      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
-      - ORDERER_OPERATIONS_LISTENADDRESS=orderer.example.com:8443
-    working_dir: /root
-    command: orderer
+      <<: *orderer-env
+      ORDERER_ADMIN_LISTENADDRESS: 0.0.0.0:7053
+      ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8443
     ports:
       - 7050:7050
       - 7053:7053
       - 8443:8443
-    networks:
-      - test
     volumes:
       - ./channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp:/var/hyperledger/orderer/msp
       - ./channel/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls:/var/hyperledger/orderer/tls
-      # - /var/opusdei/orderer:/var/hyperledger/production
 
   orderer2.example.com:
+    <<: *orderer-common
     container_name: orderer2.example.com
-    image: hyperledger/fabric-orderer:2.5.0
     environment:
-      - FABRIC_LOGGING_SPEC=INFO
-      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
-      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
-
-       # enabled TLS
-      - ORDERER_GENERAL_TLS_ENABLED=true
-      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-
-      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
-      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
-      - ORDERER_ADMIN_TLS_ENABLED=true
-      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_METRICS_PROVIDER=prometheus
-
-      - ORDERER_GENERAL_LISTENPORT=7050
-      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:8053
-      - ORDERER_OPERATIONS_LISTENADDRESS=orderer2.example.com:8443
-
-    working_dir: /root
-    command: orderer
+      <<: *orderer-env
+      ORDERER_ADMIN_LISTENADDRESS: 0.0.0.0:8053
+      ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8443
     ports:
       - 8050:7050
       - 8053:8053
       - 8444:8443
-    networks:
-      - test
     volumes:
       - ./channel/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/msp:/var/hyperledger/orderer/msp
       - ./channel/crypto-config/ordererOrganizations/example.com/orderers/orderer2.example.com/tls:/var/hyperledger/orderer/tls
-      # - /var/opusdei/orderer2:/var/hyperledger/production
 
   orderer3.example.com:
+    <<: *orderer-common
     container_name: orderer3.example.com
-    image: hyperledger/fabric-orderer:2.5.0
     environment:
-      - FABRIC_LOGGING_SPEC=INFO
-      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
-      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
-      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
-
-       # enabled TLS
-      - ORDERER_GENERAL_TLS_ENABLED=true
-      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-
-      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
-      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
-      - ORDERER_ADMIN_TLS_ENABLED=true
-      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
-      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
-      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
-      - ORDERER_METRICS_PROVIDER=prometheus
-      - ORDERER_GENERAL_LISTENPORT=7050
-      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:9053
-      - ORDERER_OPERATIONS_LISTENADDRESS=orderer3.example.com:8443
-    working_dir: /root
-    command: orderer
+      <<: *orderer-env
+      ORDERER_ADMIN_LISTENADDRESS: 0.0.0.0:9053
+      ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:8443
     ports:
       - 9050:7050
       - 9053:9053
       - 8445:8443
-    networks:
-      - test
     volumes:
       - ./channel/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/msp:/var/hyperledger/orderer/msp
       - ./channel/crypto-config/ordererOrganizations/example.com/orderers/orderer3.example.com/tls:/var/hyperledger/orderer/tls
-      # - /var/opusdei/orderer3:/var/hyperledger/production
 
   couchdb0:
+    <<: *couchdb-common
     container_name: couchdb0
-    image: couchdb:3.1.1
     environment:
       - COUCHDB_USER=${COUCHDB_USER}
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
     ports:
       - 5984:5984
-    networks:
-      - test
 
   couchdb1:
+    <<: *couchdb-common
     container_name: couchdb1
-    image: couchdb:3.1.1
     environment:
       - COUCHDB_USER=${COUCHDB_USER}
       - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
     ports:
       - 6984:5984
-    networks:
-      - test
-
-  couchdb2:
-    container_name: couchdb2
-    image: couchdb:3.1.1
-    environment:
-      - COUCHDB_USER=${COUCHDB_USER}
-      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD}
-    ports:
-      - 7984:5984
-    networks:
-      - test
-
 
   peer0.org1.example.com:
+    <<: *peer-common
     container_name: peer0.org1.example.com
-    image: hyperledger/fabric-peer:2.5.0
-    labels:
-      service: hyperledger-fabric
     environment:
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - FABRIC_LOGGING_SPEC=info
-      - ORDERER_GENERAL_LOGLEVEL=info
-      - CORE_PEER_LOCALMSPID=Org1MSP
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=artifacts_test
-
-      - CORE_PEER_ID=peer0.org1.example.com
-      - CORE_PEER_ADDRESS=peer0.org1.example.com:7051
-      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
-      - CORE_PEER_CHAINCODEADDRESS=peer0.org1.example.com:7052
-      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
-      # Peer used to bootstrap gossip within organisation
-      # - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.org1.example.com:8051
-      # Exposed for discovery Service
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.example.com:7051
-
-      # - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:9440
-
-      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
-      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb0:5984
-      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=${COUCHDB_USER}
-      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=${COUCHDB_PASSWORD}
-
-      - CORE_PEER_TLS_ENABLED=true
-      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
-      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
-      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
-      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      <<: *peer-env
+      CORE_PEER_LOCALMSPID: Org1MSP
+      CORE_PEER_ID: peer0.org1.example.com
+      CORE_PEER_ADDRESS: peer0.org1.example.com:7051
+      CORE_PEER_LISTENADDRESS: 0.0.0.0:7051
+      CORE_PEER_CHAINCODEADDRESS: peer0.org1.example.com:7052
+      CORE_PEER_CHAINCODELISTENADDRESS: 0.0.0.0:7052
+      CORE_PEER_GOSSIP_EXTERNALENDPOINT: peer0.org1.example.com:7051
+      CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS: couchdb0:5984
     depends_on:
       - couchdb0
     ports:
       - 7051:7051
+      - 9440:9440
     volumes:
       - ./channel/crypto-config/peerOrganizations/org1.example.com/peers/peer0.org1.example.com:/etc/hyperledger/fabric
       - /var/run/:/host/var/run/
-      # - /var/opusdei/peer0-org1:/var/hyperledger/production
-    networks:
-      - test
-
 
   peer0.org2.example.com:
+    <<: *peer-common
     container_name: peer0.org2.example.com
-    image: hyperledger/fabric-peer:2.5.0
-    labels:
-      service: hyperledger-fabric
     environment:
-      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
-      - FABRIC_LOGGING_SPEC=info
-      - ORDERER_GENERAL_LOGLEVEL=info
-      - CORE_PEER_LOCALMSPID=Org2MSP
-
-      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=artifacts_test
-
-      - CORE_PEER_ID=peer0.org2.example.com
-      - CORE_PEER_ADDRESS=peer0.org2.example.com:9051
-      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
-      - CORE_PEER_CHAINCODEADDRESS=peer0.org2.example.com:9052
-      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
-      # Exposed for discovery Service
-      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org2.example.com:9051
-      # - CORE_PEER_GOSSIP_BOOTSTRAP=peer1.org2.example.com:10051
-
-      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
-      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb1:5984
-      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=${COUCHDB_USER}
-      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=${COUCHDB_PASSWORD}
-      # - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:9440
-      - CORE_PEER_TLS_ENABLED=true
-      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
-      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
-      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
-      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      <<: *peer-env
+      CORE_PEER_LOCALMSPID: Org2MSP
+      CORE_PEER_ID: peer0.org2.example.com
+      CORE_PEER_ADDRESS: peer0.org2.example.com:9051
+      CORE_PEER_LISTENADDRESS: 0.0.0.0:9051
+      CORE_PEER_CHAINCODEADDRESS: peer0.org2.example.com:9052
+      CORE_PEER_CHAINCODELISTENADDRESS: 0.0.0.0:9052
+      CORE_PEER_GOSSIP_EXTERNALENDPOINT: peer0.org2.example.com:9051
+      CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS: couchdb1:5984
+    depends_on:
+      - couchdb1
     ports:
       - 9051:9051
+      - 9441:9440
     volumes:
       - ./channel/crypto-config/peerOrganizations/org2.example.com/peers/peer0.org2.example.com:/etc/hyperledger/fabric
       - /var/run/:/host/var/run/
-      # - /var/opusdei/peer0-org2:/var/hyperledger/production
-    networks:
-      - test
-

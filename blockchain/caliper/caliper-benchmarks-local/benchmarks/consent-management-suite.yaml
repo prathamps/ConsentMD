@@ -1,25 +1,14 @@
+# Quick all-in-one suite: one short round per operation type.
+# Use this to sanity-check a network; use run-benchmarks.sh (10 repetitions +
+# aggregation) for numbers you intend to publish.
 test:
   name: ConsentMD Performance Benchmark Suite
-  description: Comprehensive performance testing for consent management operations
+  description: One short round per consent-management operation
   workers:
     number: 2
   rounds:
-    - label: initialization
-      description: Initialize test data (patients, doctors, records)
-      txNumber: 100
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 10
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: initialization
-          patientCount: 20
-          doctorCount: 10
-          recordsPerPatient: 15
     - label: consent-granting
-      description: Benchmark consent granting performance
+      description: Consent granting
       txNumber: 300
       rateControl:
         type: fixed-rate
@@ -27,10 +16,13 @@ test:
           tps: 50
       workload:
         module: workloads/consent-granting.js
-        arguments:
-          mode: granting
+        arguments: &dataset
+          patientCount: 10          # per worker
+          doctorCount: 5            # per worker
+          recordsPerPatient: 3
+          seedConsentRatio: 0.2
     - label: record-access
-      description: Benchmark record access performance
+      description: Consent-checked reads (20% deliberate unauthorized)
       txNumber: 300
       rateControl:
         type: fixed-rate
@@ -38,8 +30,12 @@ test:
           tps: 100
       workload:
         module: workloads/record-access.js
+        arguments:
+          <<: *dataset
+          seedConsentRatio: 0.7
+          unauthorizedReadRatio: 0.2
     - label: consent-revocation
-      description: Benchmark consent revocation performance
+      description: Consent revocation
       txNumber: 150
       rateControl:
         type: fixed-rate
@@ -47,8 +43,11 @@ test:
           tps: 25
       workload:
         module: workloads/consent-revocation.js
+        arguments:
+          <<: *dataset
+          seedConsentRatio: 0.9
     - label: mixed-workload
-      description: Benchmark mixed operations
+      description: 40/40/20 grant/read/revoke blend
       txNumber: 500
       rateControl:
         type: fixed-rate
@@ -56,17 +55,9 @@ test:
           tps: 75
       workload:
         module: workloads/mixed-workload.js
-    - label: cleanup
-      description: Clean up test data
-      txNumber: 100
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 20
-      workload:
-        module: workloads/consent-granting.js
         arguments:
-          mode: cleanup
+          <<: *dataset
+          seedConsentRatio: 0.5
 
 monitors:
   resource:
@@ -74,7 +65,7 @@ monitors:
       options:
         url: "http://localhost:9090"
         metrics:
-          include: [dev-.*, test-.*]
+          include: [dev-.*, peer.*, orderer.*, couchdb.*]
           queries:
             - name: "Avg Memory (MB)"
               query: 'sum(container_memory_rss{name=~".+"}) by (name)'
@@ -86,13 +77,3 @@ monitors:
               step: 10
               label: name
               statistic: avg
-            - name: "Network In (MB)"
-              query: 'sum(rate(container_network_receive_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
-              step: 10
-              label: name
-              statistic: sum
-            - name: "Network Out (MB)"
-              query: 'sum(rate(container_network_transmit_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
-              step: 10
-              label: name
-              statistic: sum

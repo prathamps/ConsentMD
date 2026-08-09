@@ -1,36 +1,15 @@
+# Record-access (read) benchmark.
+# 20% of reads are deliberate unauthorized attempts; the chaincode's denial is
+# the expected outcome and is recorded as "denied", never as a failure
+# (docs/methodology.md, failure definition).
 test:
   name: Record Access Performance Test
-  description: 5-minute performance test for medical record access operations
+  description: Consent-checked record reads, authorized and unauthorized
   workers:
-    number: 3
+    number: 2
   rounds:
-    - label: initialization
-      description: Initialize test data with consent relationships
-      txDuration: 30
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 20
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: initialization
-          patientCount: 50
-          doctorCount: 20
-          recordsPerPatient: 100
-    - label: consent-setup
-      description: Create consent relationships for access testing
-      txDuration: 60
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 30
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: granting
     - label: record-access-warmup
-      description: Warmup phase for record access
+      description: Short warmup so JIT/gRPC/session caches are hot before measurement
       txDuration: 30
       rateControl:
         type: fixed-rate
@@ -38,8 +17,14 @@ test:
           tps: 20
       workload:
         module: workloads/record-access.js
+        arguments: &dataset
+          patientCount: 10          # per worker
+          doctorCount: 5            # per worker
+          recordsPerPatient: 3
+          seedConsentRatio: 0.7
+          unauthorizedReadRatio: 0.2
     - label: record-access-main
-      description: Main record access performance test
+      description: Main record access measurement round
       txDuration: 300
       rateControl:
         type: fixed-rate
@@ -47,17 +32,7 @@ test:
           tps: 100
       workload:
         module: workloads/record-access.js
-    - label: cleanup
-      description: Clean up test data
-      txDuration: 30
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 30
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: cleanup
+        arguments: *dataset
 
 monitors:
   resource:
@@ -65,7 +40,7 @@ monitors:
       options:
         url: "http://localhost:9090"
         metrics:
-          include: [dev-.*, test-.*]
+          include: [dev-.*, peer.*, orderer.*, couchdb.*]
           queries:
             - name: "Avg Memory (MB)"
               query: 'sum(container_memory_rss{name=~".+"}) by (name)'
@@ -77,8 +52,3 @@ monitors:
               step: 10
               label: name
               statistic: avg
-            - name: "Network In (MB)"
-              query: 'sum(rate(container_network_receive_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
-              step: 10
-              label: name
-              statistic: sum

@@ -1,174 +1,102 @@
 #!/bin/bash
+# ConsentMD benchmark harness.
+#
+# Runs each benchmark N times (default 10 — reviewer item 2), samples
+# container resources at a fixed interval throughout (item 15), and
+# aggregates per-transaction latencies into mean ± std across runs plus
+# pooled p50/p95/p99 (items 2, 3). Dataset manifests (item 7) and the
+# failure definition (item 12) land in the same summary.
+#
+# Usage:
+#   ./run-benchmarks.sh [--runs N] [--benchmarks "consent-granting record-access"]
+#                       [--network FILE] [--monitor-interval SECONDS]
+#
+# Prerequisite: node setup/provision-identities.js  (CA-enrolled identities
+# with the `organization` attribute; plain cryptogen identities are denied by
+# the chaincode's fail-closed policy).
+set -euo pipefail
+cd "$(dirname "$0")"
 
-# ConsentMD Caliper Benchmark Execution Script
-# This script runs individual benchmark configurations for consent management operations
+RUNS=10
+NETWORK_CONFIG="networks/fabric/bench-network.yaml"
+BENCHMARKS=(consent-granting record-access consent-revocation mixed-workload)
+MONITOR_INTERVAL=5
 
-set -e
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--runs) RUNS="$2"; shift 2 ;;
+		--benchmarks) read -r -a BENCHMARKS <<< "$2"; shift 2 ;;
+		--network) NETWORK_CONFIG="$2"; shift 2 ;;
+		--monitor-interval) MONITOR_INTERVAL="$2"; shift 2 ;;
+		*) echo "Unknown option: $1" >&2; exit 1 ;;
+	esac
+done
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Configuration
-NETWORK_CONFIG="networks/fabric/consent-management-network.yaml"
-RESULTS_DIR="results/$(date +%Y%m%d_%H%M%S)"
-LOG_FILE="$RESULTS_DIR/execution.log"
-
-# Create results directory
-mkdir -p "$RESULTS_DIR"
-
-# Setup logging
-exec 1> >(tee -a "$LOG_FILE")
-exec 2> >(tee -a "$LOG_FILE" >&2)
-
-echo -e "${BLUE}=== ConsentMD Caliper Benchmark Suite ===${NC}"
-echo "Starting benchmark execution..."
-echo "Results will be saved to: $RESULTS_DIR"
-echo "Execution log: $LOG_FILE"
-echo ""
-
-# Pre-flight checks
-echo -e "${YELLOW}Performing pre-flight checks...${NC}"
-
-# Check if network config exists
 if [ ! -f "$NETWORK_CONFIG" ]; then
-    echo -e "${RED}Error: Network configuration not found: $NETWORK_CONFIG${NC}"
-    echo "Please ensure the Fabric network configuration is properly set up."
-    exit 1
+	echo "Network config not found: $NETWORK_CONFIG" >&2
+	echo "Generate it first: node setup/provision-identities.js" >&2
+	exit 1
 fi
+command -v node >/dev/null || { echo "Node.js is required" >&2; exit 1; }
 
-# Check if Node.js is available
-if ! command -v node &> /dev/null; then
-    echo -e "${RED}Error: Node.js is not installed or not in PATH${NC}"
-    exit 1
-fi
+RESULTS_DIR="results/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$RESULTS_DIR"
+export CONSENTMD_RESULTS_DIR="$PWD/$RESULTS_DIR"
+LOG_FILE="$RESULTS_DIR/execution.log"
+exec 1> >(tee -a "$LOG_FILE") 2>&1
 
-# Check if npm is available
-if ! command -v npm &> /dev/null; then
-    echo -e "${RED}Error: npm is not installed or not in PATH${NC}"
-    exit 1
-fi
+echo "=== ConsentMD Benchmark Suite ==="
+echo "Runs per benchmark : $RUNS"
+echo "Benchmarks         : ${BENCHMARKS[*]}"
+echo "Network config     : $NETWORK_CONFIG"
+echo "Results            : $RESULTS_DIR"
+echo "Resource sampling  : docker stats every ${MONITOR_INTERVAL}s"
+echo
 
-# Check if Caliper is available
-if ! npm list @hyperledger/caliper-cli &> /dev/null; then
-    echo -e "${YELLOW}Warning: Caliper CLI not found in local dependencies${NC}"
-    echo "Attempting to use npx to run Caliper..."
-fi
+monitoring/collect-docker-stats.sh "$MONITOR_INTERVAL" "$RESULTS_DIR/resource-usage.csv" &
+MONITOR_PID=$!
+trap 'kill "$MONITOR_PID" 2>/dev/null || true' EXIT
 
-echo -e "${GREEN}Pre-flight checks completed successfully${NC}"
-echo ""
+FAILED_RUNS=()
+for bench in "${BENCHMARKS[@]}"; do
+	config="benchmarks/consent-management/${bench}-benchmark.yaml"
+	if [ ! -f "$config" ]; then
+		echo "!! Missing benchmark config: $config" >&2
+		FAILED_RUNS+=("$bench (missing config)")
+		continue
+	fi
+	for run in $(seq 1 "$RUNS"); do
+		export CONSENTMD_RUN_LABEL="${bench}.run${run}"
+		echo "--- $bench run $run/$RUNS ($(date -u +%H:%M:%SZ)) ---"
+		if ! npx caliper launch manager \
+			--caliper-workspace ./ \
+			--caliper-networkconfig "$NETWORK_CONFIG" \
+			--caliper-benchconfig "$config" \
+			--caliper-flow-only-test \
+			--caliper-report-path "$RESULTS_DIR/${bench}-run${run}-report.html"; then
+			echo "!! $bench run $run failed" >&2
+			FAILED_RUNS+=("$bench run $run")
+		fi
+	done
+done
 
-# Function to run a benchmark
-run_benchmark() {
-    local benchmark_name=$1
-    local config_file=$2
-    local start_time=$(date +%s)
-    
-    echo ""
-    echo -e "${BLUE}=== Running $benchmark_name Benchmark ===${NC}"
-    echo "Configuration: $config_file"
-    echo "Start time: $(date)"
-    
-    # Check if config file exists
-    if [ ! -f "$config_file" ]; then
-        echo -e "${RED}Error: Benchmark configuration not found: $config_file${NC}"
-        return 1
-    fi
-    
-    # Run the benchmark with error handling
-    if npx caliper launch manager \
-        --caliper-workspace ./ \
-        --caliper-networkconfig "$NETWORK_CONFIG" \
-        --caliper-benchconfig "$config_file" \
-        --caliper-flow-only-test \
-        --caliper-report-path "$RESULTS_DIR/${benchmark_name}-report.html"; then
-        
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
-        echo -e "${GREEN}✓ Completed $benchmark_name benchmark successfully${NC}"
-        echo "Duration: ${duration} seconds"
-        echo "Report saved to: $RESULTS_DIR/${benchmark_name}-report.html"
-        return 0
-    else
-        echo -e "${RED}✗ Failed to complete $benchmark_name benchmark${NC}"
-        echo "Check the logs above for error details"
-        return 1
-    fi
-}
+kill "$MONITOR_PID" 2>/dev/null || true
 
-# Track overall execution
-TOTAL_START_TIME=$(date +%s)
-FAILED_BENCHMARKS=()
-SUCCESSFUL_BENCHMARKS=()
+echo
+echo "=== Aggregating results ==="
+node src/aggregate-results.js "$RESULTS_DIR"
 
-# Run individual benchmarks
-echo ""
-echo -e "${YELLOW}Starting individual benchmark tests...${NC}"
-
-# 1. Consent Granting Benchmark (5 minutes)
-if run_benchmark "consent-granting" "benchmarks/consent-management/consent-granting-benchmark.yaml"; then
-    SUCCESSFUL_BENCHMARKS+=("consent-granting")
+if command -v python3 >/dev/null && python3 -c 'import matplotlib' 2>/dev/null; then
+	python3 monitoring/plot-resources.py "$RESULTS_DIR/resource-usage.csv" "$RESULTS_DIR/figures" || true
 else
-    FAILED_BENCHMARKS+=("consent-granting")
+	echo "matplotlib not available — render figures later with:"
+	echo "  python3 monitoring/plot-resources.py $RESULTS_DIR/resource-usage.csv $RESULTS_DIR/figures"
 fi
 
-# 2. Record Access Benchmark (5 minutes)  
-if run_benchmark "record-access" "benchmarks/consent-management/record-access-benchmark.yaml"; then
-    SUCCESSFUL_BENCHMARKS+=("record-access")
-else
-    FAILED_BENCHMARKS+=("record-access")
+echo
+if [ ${#FAILED_RUNS[@]} -gt 0 ]; then
+	printf '!! %d failed run(s):\n' "${#FAILED_RUNS[@]}"
+	printf '   - %s\n' "${FAILED_RUNS[@]}"
+	exit 1
 fi
-
-# 3. Consent Revocation Benchmark (5 minutes)
-if run_benchmark "consent-revocation" "benchmarks/consent-management/consent-revocation-benchmark.yaml"; then
-    SUCCESSFUL_BENCHMARKS+=("consent-revocation")
-else
-    FAILED_BENCHMARKS+=("consent-revocation")
-fi
-
-# 4. Mixed Workload Benchmark (5 minutes)
-if run_benchmark "mixed-workload" "benchmarks/consent-management/mixed-workload-benchmark.yaml"; then
-    SUCCESSFUL_BENCHMARKS+=("mixed-workload")
-else
-    FAILED_BENCHMARKS+=("mixed-workload")
-fi
-
-# Summary
-TOTAL_END_TIME=$(date +%s)
-TOTAL_DURATION=$((TOTAL_END_TIME - TOTAL_START_TIME))
-
-echo ""
-echo -e "${BLUE}=== Benchmark Execution Summary ===${NC}"
-echo "Total execution time: ${TOTAL_DURATION} seconds ($(date -d@${TOTAL_DURATION} -u +%H:%M:%S))"
-echo "Results directory: $RESULTS_DIR"
-
-if [ ${#SUCCESSFUL_BENCHMARKS[@]} -gt 0 ]; then
-    echo -e "${GREEN}Successful benchmarks (${#SUCCESSFUL_BENCHMARKS[@]}):"
-    for benchmark in "${SUCCESSFUL_BENCHMARKS[@]}"; do
-        echo -e "  ✓ $benchmark"
-    done
-fi
-
-if [ ${#FAILED_BENCHMARKS[@]} -gt 0 ]; then
-    echo -e "${RED}Failed benchmarks (${#FAILED_BENCHMARKS[@]}):"
-    for benchmark in "${FAILED_BENCHMARKS[@]}"; do
-        echo -e "  ✗ $benchmark"
-    done
-fi
-
-echo ""
-echo -e "${YELLOW}Next Steps:${NC}"
-echo "1. Review HTML reports: open $RESULTS_DIR/*.html in your browser"
-echo "2. Check execution log: cat $LOG_FILE"
-echo "3. For detailed analysis, see: docs/performance-results-guide.md"
-
-if [ ${#FAILED_BENCHMARKS[@]} -gt 0 ]; then
-    echo -e "${RED}4. Investigate failed benchmarks using the troubleshooting guide in README.md${NC}"
-    exit 1
-else
-    echo -e "${GREEN}All benchmarks completed successfully!${NC}"
-    exit 0
-fi
+echo "All runs completed. See $RESULTS_DIR/summary.md"

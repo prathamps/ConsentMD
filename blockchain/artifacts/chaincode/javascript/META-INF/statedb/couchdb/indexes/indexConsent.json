@@ -1,8 +1,0 @@
-{
-  "index": {
-    "fields": ["docType", "status", "doctorId", "recordId"]
-  },
-  "ddoc": "indexConsentDoc",
-  "name": "index-consent-verification",
-  "type": "json"
-}

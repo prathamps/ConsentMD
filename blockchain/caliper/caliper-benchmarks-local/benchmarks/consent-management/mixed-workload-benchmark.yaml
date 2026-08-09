@@ -1,43 +1,41 @@
+# Mixed workload: 40% grants, 40% consent-checked reads, 20% revocations —
+# an approximation of steady clinic traffic. Weights are configurable via
+# operationWeights.
 test:
   name: Mixed Workload Performance Test
-  description: 5-minute performance test combining all consent management operations
+  description: Blended grant/read/revoke operations
   workers:
     number: 2
   rounds:
     - label: mixed-workload-warmup
-      description: Warmup phase for mixed operations
+      description: Short warmup so JIT/gRPC/session caches are hot before measurement
       txDuration: 30
       rateControl:
         type: fixed-rate
         opts:
-          tps: 10
+          tps: 15
       workload:
         module: workloads/mixed-workload.js
-        arguments:
-          patientCount: 15
-          doctorCount: 8
+        arguments: &dataset
+          patientCount: 10          # per worker
+          doctorCount: 5            # per worker
           recordsPerPatient: 3
+          seedConsentRatio: 0.5
+          unauthorizedReadRatio: 0.2
           operationWeights:
             grantConsent: 0.4
             recordAccess: 0.4
             revokeConsent: 0.2
     - label: mixed-workload-main
-      description: Main mixed workload performance test (5 minutes)
+      description: Main mixed workload measurement round
       txDuration: 300
       rateControl:
         type: fixed-rate
         opts:
-          tps: 25
+          tps: 75
       workload:
         module: workloads/mixed-workload.js
-        arguments:
-          patientCount: 15
-          doctorCount: 8
-          recordsPerPatient: 3
-          operationWeights:
-            grantConsent: 0.4
-            recordAccess: 0.4
-            revokeConsent: 0.2
+        arguments: *dataset
 
 monitors:
   resource:
@@ -45,7 +43,7 @@ monitors:
       options:
         url: "http://localhost:9090"
         metrics:
-          include: [dev-.*, test-.*]
+          include: [dev-.*, peer.*, orderer.*, couchdb.*]
           queries:
             - name: "Avg Memory (MB)"
               query: 'sum(container_memory_rss{name=~".+"}) by (name)'
@@ -57,13 +55,3 @@ monitors:
               step: 10
               label: name
               statistic: avg
-            - name: "Network In (MB)"
-              query: 'sum(rate(container_network_receive_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
-              step: 10
-              label: name
-              statistic: sum
-            - name: "Network Out (MB)"
-              query: 'sum(rate(container_network_transmit_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
-              step: 10
-              label: name
-              statistic: sum

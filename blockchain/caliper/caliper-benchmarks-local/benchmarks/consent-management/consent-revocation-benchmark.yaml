@@ -1,36 +1,15 @@
+# Consent-revocation benchmark.
+# Seeds a high consent ratio so the round revokes real consents; when the
+# active pool empties it replenishes with grants, which the aggregator reports
+# as a separate operation so revocation latency stays clean.
 test:
   name: Consent Revocation Performance Test
-  description: 5-minute performance test for consent revocation operations
+  description: Consent revocation throughput and latency
   workers:
     number: 2
   rounds:
-    - label: initialization
-      description: Initialize test data (patients, doctors, records)
-      txDuration: 30
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 20
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: initialization
-          patientCount: 50
-          doctorCount: 20
-          recordsPerPatient: 100
-    - label: consent-setup
-      description: Create consent relationships for revocation testing
-      txDuration: 90
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 40
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: granting
-    - label: revocation-warmup
-      description: Warmup phase for consent revocation
+    - label: consent-revocation-warmup
+      description: Short warmup so JIT/gRPC/session caches are hot before measurement
       txDuration: 30
       rateControl:
         type: fixed-rate
@@ -38,8 +17,13 @@ test:
           tps: 5
       workload:
         module: workloads/consent-revocation.js
+        arguments: &dataset
+          patientCount: 10          # per worker
+          doctorCount: 5            # per worker
+          recordsPerPatient: 3
+          seedConsentRatio: 0.9
     - label: consent-revocation-main
-      description: Main consent revocation performance test
+      description: Main consent revocation measurement round
       txDuration: 300
       rateControl:
         type: fixed-rate
@@ -47,17 +31,7 @@ test:
           tps: 25
       workload:
         module: workloads/consent-revocation.js
-    - label: cleanup
-      description: Clean up remaining test data
-      txDuration: 30
-      rateControl:
-        type: fixed-rate
-        opts:
-          tps: 30
-      workload:
-        module: workloads/consent-granting.js
-        arguments:
-          mode: cleanup
+        arguments: *dataset
 
 monitors:
   resource:
@@ -65,7 +39,7 @@ monitors:
       options:
         url: "http://localhost:9090"
         metrics:
-          include: [dev-.*, test-.*]
+          include: [dev-.*, peer.*, orderer.*, couchdb.*]
           queries:
             - name: "Avg Memory (MB)"
               query: 'sum(container_memory_rss{name=~".+"}) by (name)'
@@ -77,8 +51,3 @@ monitors:
               step: 10
               label: name
               statistic: avg
-            - name: "Network Out (MB)"
-              query: 'sum(rate(container_network_transmit_bytes_total{name=~".+"}[1m])) by (name) / 1024 / 1024'
-              step: 10
-              label: name
-              statistic: sum

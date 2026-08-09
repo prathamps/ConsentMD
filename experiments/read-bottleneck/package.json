@@ -1,0 +1,12 @@
+{
+	"name": "consentmd-exp-read-bottleneck",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Read-path latency attribution (CouchDB vs peer vs SDK gateway) for ConsentMD",
+	"engines": {
+		"node": ">=18"
+	},
+	"dependencies": {
+		"fabric-network": "^2.2.2"
+	}
+}

@@ -1,15 +1,14 @@
 {
 	"name": "consent-management-caliper-benchmark",
-	"version": "1.0.0",
-	"description": "Hyperledger Caliper benchmark tests for ConsentMD consent management system",
-	"main": "index.js",
+	"version": "2.0.0",
+	"description": "Hyperledger Caliper benchmark suite for the ConsentMD consent management system",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"benchmark": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management-suite.yaml --caliper-flow-only-test",
-		"benchmark-consent-granting": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/consent-granting-benchmark.yaml --caliper-flow-only-test",
-		"benchmark-record-access": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/record-access-benchmark.yaml --caliper-flow-only-test",
-		"benchmark-consent-revocation": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/consent-revocation-benchmark.yaml --caliper-flow-only-test",
-		"benchmark-mixed": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/consent-management-network.yaml --caliper-benchconfig benchmarks/consent-management/mixed-workload-benchmark.yaml --caliper-flow-only-test"
+		"provision-identities": "node setup/provision-identities.js",
+		"benchmark": "./run-benchmarks.sh",
+		"benchmark:suite": "npx caliper launch manager --caliper-workspace ./ --caliper-networkconfig networks/fabric/bench-network.yaml --caliper-benchconfig benchmarks/consent-management-suite.yaml --caliper-flow-only-test",
+		"benchmark:smoke": "./run-single-benchmark.sh minimal-consent-granting",
+		"aggregate": "node src/aggregate-results.js",
+		"test": "node test/workload.test.js"
 	},
 	"keywords": [
 		"hyperledger",
@@ -27,7 +26,9 @@
 		"@hyperledger/caliper-cli": "^0.6.0",
 		"@hyperledger/caliper-core": "^0.6.0",
 		"@hyperledger/caliper-fabric": "^0.6.0",
-		"@hyperledger/fabric-gateway": "^1.5.0"
+		"@hyperledger/fabric-gateway": "^1.5.0",
+		"fabric-ca-client": "^2.2.20",
+		"fabric-common": "^2.2.20"
 	},
 	"engines": {
 		"node": ">=18.0.0",
