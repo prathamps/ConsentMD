@@ -1,32 +1,44 @@
 #!/bin/bash
-# Rate-sweep harness that reproduces the paper's Tables 2 and 3.
+# Rate-sweep harness that characterizes throughput correctly on a
+# capacity-limited host (reproduces the paper's Tables 2 & 3, done rigorously).
 #
-# Write saturation : record-creation transactions at 50/100/150/200/250 TPS.
-# Read scalability : consent-checked reads at 300/600/1000 TPS, in two modes —
-#                    authorized-only (no unauthorized reads) and
-#                    authorization-enabled (a share of reads are correctly
-#                    denied). Each (scenario, rate) is run N times; the
-#                    aggregator reports mean +/- std across runs plus pooled
-#                    p50/p95/p99, one row per rate — the shape of Tables 2/3.
+# Two complementary measurements, per the systems-benchmarking method:
+#
+#   1. Sustained throughput (fixed-load, closed-loop): Caliper holds a small
+#      in-flight backlog and finds the maximum rate the system can actually
+#      commit, with stable latency. This is the honest "max throughput" number
+#      and does NOT suffer open-loop congestion collapse.
+#
+#   2. Saturation curve (fixed-rate, open-loop): a sweep of offered rates that
+#      brackets the knee, so the paper can show throughput rising, plateauing,
+#      then latency degrading past capacity — with p50/p95/p99 at each point.
+#
+# Writes use record-creation (an unbounded, always-valid single ledger write).
+# Reads run in two modes: authorized-only and authorization-enabled (a share of
+# reads are correctly denied). Each (scenario) is run N times; the aggregator
+# reports mean +/- std across runs plus pooled p50/p95/p99, one row per scenario.
 #
 # Usage:
-#   ./run-sweep.sh [--runs N] [--duration S] [--write-rates "50 100 ..."]
-#                  [--read-rates "300 600 1000"] [--modes "authorized enabled"]
-#                  [--network FILE] [--monitor-interval S]
+#   ./run-sweep.sh [--runs N] [--duration S]
+#                  [--write-rates "10 20 30 40 50"] [--read-rates "200 400 600"]
+#                  [--modes "authorized enabled"] [--fixed-load L]
+#                  [--network FILE] [--monitor-interval S] [--workers N]
 #
 # Prerequisite: node setup/provision-identities.js (CA-enrolled identities).
 set -euo pipefail
 cd "$(dirname "$0")"
+export OVERRIDE_ORG="${OVERRIDE_ORG:-}" VERBOSE="${VERBOSE:-false}"
 
 RUNS=10
-DURATION=300
-WRITE_RATES="50 100 150 200 250"
-READ_RATES="300 600 1000"
+DURATION=60          # steady state is reached within seconds for these workloads
+WRITE_RATES="10 20 30 40 50"
+READ_RATES="200 400 600"
 MODES="authorized enabled"
+FIXED_LOAD=20        # target in-flight backlog for the sustained (closed-loop) runs; 0 disables
 NETWORK_CONFIG="networks/fabric/bench-network.yaml"
 MONITOR_INTERVAL=5
 WORKERS=2
-UNAUTH_RATIO=0.2   # authorization-enabled mix
+UNAUTH_RATIO=0.2
 
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -35,6 +47,7 @@ while [ $# -gt 0 ]; do
 		--write-rates) WRITE_RATES="$2"; shift 2 ;;
 		--read-rates) READ_RATES="$2"; shift 2 ;;
 		--modes) MODES="$2"; shift 2 ;;
+		--fixed-load) FIXED_LOAD="$2"; shift 2 ;;
 		--network) NETWORK_CONFIG="$2"; shift 2 ;;
 		--monitor-interval) MONITOR_INTERVAL="$2"; shift 2 ;;
 		--workers) WORKERS="$2"; shift 2 ;;
@@ -51,7 +64,7 @@ export CONSENTMD_RESULTS_DIR="$PWD/$RESULTS_DIR"
 exec > >(tee -a "$RESULTS_DIR/execution.log") 2>&1
 
 echo "=== ConsentMD rate sweep ==="
-echo "runs=$RUNS duration=${DURATION}s workers=$WORKERS"
+echo "runs=$RUNS duration=${DURATION}s workers=$WORKERS fixed-load=$FIXED_LOAD"
 echo "write rates: $WRITE_RATES"
 echo "read rates : $READ_RATES  modes: $MODES"
 echo "results: $RESULTS_DIR"
@@ -63,34 +76,40 @@ trap 'kill "$MONITOR_PID" 2>/dev/null || true' EXIT
 
 TMP_CFG="$RESULTS_DIR/.round.yaml"
 
-# Emit a one-round Caliper config for a given workload/rate/args.
+# rate_block "fixed-rate" 50   OR   rate_block "fixed-load" 20
+rate_block() {
+	if [ "$1" = "fixed-load" ]; then
+		printf '        type: fixed-load\n        opts:\n          transactionLoad: %s' "$2"
+	else
+		printf '        type: fixed-rate\n        opts:\n          tps: %s' "$2"
+	fi
+}
+
+# write_config label module "<rate_block>" "<args_block>"
 write_config() {
-	local label="$1" module="$2" tps="$3" args="$4"
 	cat > "$TMP_CFG" <<EOF
 test:
-  name: $label
+  name: $1
   workers:
     number: $WORKERS
   rounds:
-    - label: $label
+    - label: $1
       txDuration: $DURATION
       rateControl:
-        type: fixed-rate
-        opts:
-          tps: $tps
+$3
       workload:
-        module: $module
+        module: $2
         arguments:
-$args
+$4
 EOF
 }
 
 run_scenario() {
-	local scenario="$1" module="$2" tps="$3" args="$4"
+	local scenario="$1" module="$2" rblock="$3" args="$4"
 	for run in $(seq 1 "$RUNS"); do
 		export CONSENTMD_RUN_LABEL="${scenario}.run${run}"
-		echo "--- $scenario  run $run/$RUNS  (tps=$tps, $(date -u +%H:%M:%SZ)) ---"
-		write_config "$scenario" "$module" "$tps" "$args"
+		echo "--- $scenario  run $run/$RUNS  ($(date -u +%H:%M:%SZ)) ---"
+		write_config "$scenario" "$module" "$rblock" "$args"
 		npx caliper launch manager \
 			--caliper-workspace ./ \
 			--caliper-networkconfig "$NETWORK_CONFIG" \
@@ -101,23 +120,31 @@ run_scenario() {
 	done
 }
 
-# ---- write saturation -----------------------------------------------------
 WRITE_ARGS=$'          patientCount: 10\n          doctorCount: 1\n          recordsPerPatient: 1\n          seedConsentRatio: 0'
-for r in $WRITE_RATES; do
-	run_scenario "write-saturation-${r}" "workloads/write-saturation.js" "$r" "$WRITE_ARGS"
-done
+read_args() { printf '          patientCount: 10\n          doctorCount: 5\n          recordsPerPatient: 3\n          seedConsentRatio: 0.9\n          unauthorizedReadRatio: %s' "$1"; }
 
-# ---- read scalability -----------------------------------------------------
+# ---- write: saturation curve (fixed-rate) + sustained (fixed-load) --------
+for r in $WRITE_RATES; do
+	run_scenario "write-saturation-${r}" "workloads/write-saturation.js" "$(rate_block fixed-rate "$r")" "$WRITE_ARGS"
+done
+if [ "$FIXED_LOAD" -gt 0 ] 2>/dev/null; then
+	run_scenario "write-sustained" "workloads/write-saturation.js" "$(rate_block fixed-load "$FIXED_LOAD")" "$WRITE_ARGS"
+fi
+
+# ---- read: saturation curve (fixed-rate) + sustained (fixed-load) ---------
 for mode in $MODES; do
 	case "$mode" in
 		authorized) ratio=0 ;;
 		enabled) ratio="$UNAUTH_RATIO" ;;
 		*) echo "Unknown mode: $mode"; continue ;;
 	esac
-	READ_ARGS=$(printf '          patientCount: 10\n          doctorCount: 5\n          recordsPerPatient: 3\n          seedConsentRatio: 0.9\n          unauthorizedReadRatio: %s' "$ratio")
+	ARGS="$(read_args "$ratio")"
 	for r in $READ_RATES; do
-		run_scenario "read-${mode}-${r}" "workloads/record-access.js" "$r" "$READ_ARGS"
+		run_scenario "read-${mode}-${r}" "workloads/record-access.js" "$(rate_block fixed-rate "$r")" "$ARGS"
 	done
+	if [ "$FIXED_LOAD" -gt 0 ] 2>/dev/null; then
+		run_scenario "read-${mode}-sustained" "workloads/record-access.js" "$(rate_block fixed-load "$FIXED_LOAD")" "$ARGS"
+	fi
 done
 
 kill "$MONITOR_PID" 2>/dev/null || true

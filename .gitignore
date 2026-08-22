@@ -194,3 +194,8 @@ blockchain/caliper/caliper-benchmarks-local/tmp/
 evaluation-results/
 api/wallets/
 experiments/*/node_modules/
+
+# Generated paper figures (regenerate via the scripts)
+paper/figures/*.png
+paper/figures/*.pdf
+paper/figures/__pycache__/
