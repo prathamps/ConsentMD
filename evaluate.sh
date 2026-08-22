@@ -41,6 +41,7 @@ RUNS=10
 BENCHMARKS="consent-granting record-access consent-revocation mixed-workload"
 SKIP_NETWORK=false
 WITH_API=false
+SWEEP_DURATION=""   # seconds per sweep round; empty = run-sweep.sh default (300)
 STAMP="$(date +%Y%m%d_%H%M%S)"
 RESULTS_DIR="$REPO/evaluation-results/$STAMP"
 
@@ -49,6 +50,7 @@ while [ $# -gt 0 ]; do
 		--install) DO_INSTALL=true; shift ;;
 		--quick) QUICK=true; RUNS=1; shift ;;
 		--paper) PAPER=true; shift ;;
+		--sweep-duration) SWEEP_DURATION="$2"; shift 2 ;;
 		--runs) RUNS="$2"; shift 2 ;;
 		--benchmarks) BENCHMARKS="$2"; shift 2 ;;
 		--skip-network) SKIP_NETWORK=true; shift ;;
@@ -157,7 +159,9 @@ if [ "$QUICK" = true ]; then
 	CAMPAIGN_DIR="$QRES"
 elif [ "$PAPER" = true ]; then
 	banner "Benchmark campaign (paper rate sweep: Tables 2 & 3, $RUNS runs/rate)"
-	( cd "$SUITE" && ./run-sweep.sh --runs "$RUNS" ) || end_phase benchmarks partial
+	SWEEP_ARGS=(--runs "$RUNS")
+	[ -n "$SWEEP_DURATION" ] && SWEEP_ARGS+=(--duration "$SWEEP_DURATION")
+	( cd "$SUITE" && ./run-sweep.sh "${SWEEP_ARGS[@]}" ) || end_phase benchmarks partial
 	CAMPAIGN_DIR="$(ls -td "$SUITE"/results/sweep_* 2>/dev/null | head -1)"
 else
 	banner "Benchmark campaign ($RUNS runs x [$BENCHMARKS])"
