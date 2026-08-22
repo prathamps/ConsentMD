@@ -236,6 +236,25 @@ async function main() {
 		assert.ok(results.every((r) => r.status === "success"))
 	}
 
+	// write-saturation: unbounded record creation, no pool exhaustion, all commit
+	{
+		const { adapter, results } = await runWorkload(
+			"../workloads/write-saturation.js",
+			{ ...DATASET, seedConsentRatio: 0 },
+			60 // more than any finite consent-pair pool, to prove it never starves
+		)
+		assert.ok(
+			results.every((r) => r.status === "success"),
+			`write-saturation produced non-success: ${JSON.stringify(results.filter((r) => r.status !== "success").slice(0, 2))}`
+		)
+		assert.ok(
+			results.every((r) => r.operation === "createRecord"),
+			"write-saturation must only create records"
+		)
+		// Seeded records + 60 created; each create is a distinct ledger record.
+		assert.ok(adapter.records.size >= 60, "every create should persist a record")
+	}
+
 	// CONCURRENCY regression (found on the live network): with slow commits
 	// and many transactions in flight, no operation may ever target a pair
 	// whose grant/revoke is still uncommitted. Before pair locking this
@@ -282,7 +301,8 @@ async function main() {
 		execFileSync("node", [path.resolve(__dirname, "../src/aggregate-results.js"), tmp])
 		const summary = JSON.parse(fs.readFileSync(path.join(tmp, "summary.json"), "utf8"))
 		assert.ok(summary.failureDefinition.includes("30 s"))
-		assert.strictEqual(Object.keys(summary.benchmarks).length, 4)
+		// One group per workload exercised above (grant, read, revoke, mixed, write-saturation).
+		assert.strictEqual(Object.keys(summary.benchmarks).length, 5)
 		for (const [name, bench] of Object.entries(summary.benchmarks)) {
 			assert.ok(Number.isFinite(bench.pooled.p95), `pooled p95 missing for ${name}`)
 			assert.strictEqual(bench.acrossRuns.totalFailed, 0, `failures in ${name}`)

@@ -36,6 +36,7 @@ ARTIFACTS="$REPO/blockchain/artifacts"
 # ---- options --------------------------------------------------------------
 DO_INSTALL=false
 QUICK=false
+PAPER=false
 RUNS=10
 BENCHMARKS="consent-granting record-access consent-revocation mixed-workload"
 SKIP_NETWORK=false
@@ -47,6 +48,7 @@ while [ $# -gt 0 ]; do
 	case "$1" in
 		--install) DO_INSTALL=true; shift ;;
 		--quick) QUICK=true; RUNS=1; shift ;;
+		--paper) PAPER=true; shift ;;
 		--runs) RUNS="$2"; shift 2 ;;
 		--benchmarks) BENCHMARKS="$2"; shift 2 ;;
 		--skip-network) SKIP_NETWORK=true; shift ;;
@@ -153,6 +155,10 @@ if [ "$QUICK" = true ]; then
 		--caliper-flow-only-test --caliper-report-path "$QRES/suite-report.html" \
 		&& node src/aggregate-results.js "$QRES" >/dev/null )
 	CAMPAIGN_DIR="$QRES"
+elif [ "$PAPER" = true ]; then
+	banner "Benchmark campaign (paper rate sweep: Tables 2 & 3, $RUNS runs/rate)"
+	( cd "$SUITE" && ./run-sweep.sh --runs "$RUNS" ) || end_phase benchmarks partial
+	CAMPAIGN_DIR="$(ls -td "$SUITE"/results/sweep_* 2>/dev/null | head -1)"
 else
 	banner "Benchmark campaign ($RUNS runs x [$BENCHMARKS])"
 	( cd "$SUITE" && ./run-benchmarks.sh --runs "$RUNS" --benchmarks "$BENCHMARKS" ) || end_phase benchmarks partial
