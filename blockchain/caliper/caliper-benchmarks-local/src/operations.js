@@ -1,5 +1,7 @@
 "use strict"
 
+const { randomItem } = require("./fixtures")
+
 /**
  * Benchmark operation builders shared by all workloads.
  *
@@ -59,4 +61,28 @@ function readOperation(gateway, dataset, unauthorizedRatio) {
 	}
 }
 
-module.exports = { grantOperation, revokeOperation, readOperation }
+/**
+ * Create a new patient record — the write-saturation operation.
+ *
+ * Unlike grant/revoke, a create is unbounded and always valid: every call is a
+ * single endorsed ledger write with a fresh, transaction-derived record id, so
+ * it can sustain any target send rate without exhausting a finite pool of
+ * (record, doctor) pairs. This is what lets the write sweep reach 250 TPS.
+ */
+function createRecordOperation(gateway, dataset, workerIndex) {
+	const patient = randomItem(dataset.patients)
+	if (!patient) return null
+	const seq = dataset.nextWriteSeq()
+	return {
+		name: "createRecord",
+		run: () =>
+			gateway.createPatientRecord(patient, {
+				fileName: `sat_${workerIndex}_${seq}.pdf`,
+				s3ObjectKey: `sat/${workerIndex}/${seq}`,
+				fileHash: `sat_${workerIndex}_${seq}_${Date.now()}`,
+				details: `write-saturation record ${seq}`,
+			}),
+	}
+}
+
+module.exports = { grantOperation, revokeOperation, readOperation, createRecordOperation }

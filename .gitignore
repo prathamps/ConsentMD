@@ -189,3 +189,16 @@ experiments/*/results/
 # Stray Caliper run artifacts at the workspace root
 blockchain/caliper/caliper-benchmarks-local/report.html
 blockchain/caliper/caliper-benchmarks-local/tmp/
+
+# One-shot evaluation output
+evaluation-results/
+api/wallets/
+experiments/*/node_modules/
+
+# Generated paper figures (regenerate via the scripts)
+paper/figures/*.png
+paper/figures/*.pdf
+paper/figures/__pycache__/
+
+# Manuscript sources (kept local, not tracked)
+report/

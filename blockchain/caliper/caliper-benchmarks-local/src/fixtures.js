@@ -33,6 +33,12 @@ class Dataset {
 		this.doctors = doctors
 		this.records = records
 		this.pairs = pairs
+		this.writeSeq = 0
+	}
+
+	/** Monotonic counter for uniquely naming write-saturation records. */
+	nextWriteSeq() {
+		return this.writeSeq++
 	}
 
 	get activePairs() {

@@ -82,14 +82,31 @@ async function provisionOrg(org, count) {
 	const registrar = await enrollRegistrar(ca)
 
 	const identities = []
+	let reused = 0
 	for (let i = 0; i < count; i++) {
 		const name = org.nameFor(i)
 		const secret = `${name}pw`
+
+		// Idempotent re-run: if this identity's cert+key are already on disk,
+		// reuse them. This avoids a second CA enrollment, which the CA would
+		// reject once maxEnrollments is reached.
+		const existing = existingIdentity(org.key, name)
+		if (existing) {
+			identities.push(existing)
+			reused++
+			process.stdout.write(`\r[${org.key}] ${i + 1}/${count} (reused ${reused})`)
+			continue
+		}
+
 		await registerTolerant(ca, registrar, {
 			enrollmentID: name,
 			enrollmentSecret: secret,
 			role: "client",
 			affiliation: "",
+			// -1 = unlimited enrollments, so a later re-run (e.g. after the
+			// local crypto is wiped but the CA's identity DB persists) can
+			// re-enroll instead of failing with an authentication error.
+			maxEnrollments: -1,
 			// The attribute the chaincode's principalOf() reads; ecert:true
 			// embeds it in the enrollment certificate itself.
 			attrs: [{ name: "organization", value: org.role, ecert: true }],
@@ -104,6 +121,17 @@ async function provisionOrg(org, count) {
 	}
 	process.stdout.write("\n")
 	return identities
+}
+
+/** Existing on-disk identity (cert+key), or null. Used for idempotent re-runs. */
+function existingIdentity(orgKey, name) {
+	const dir = path.join(IDENTITIES_DIR, orgKey, name)
+	const certPath = path.join(dir, "cert.pem")
+	const keyPath = path.join(dir, "key.pem")
+	if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+		return { name, certPath, keyPath }
+	}
+	return null
 }
 
 async function enrollRegistrar(ca) {

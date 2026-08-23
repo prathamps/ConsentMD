@@ -17,6 +17,36 @@ failure. Each section notes the reviewer concern it addresses.
 Per-run rows are kept in `summary.csv` so run-to-run variance is inspectable
 rather than hidden in an aggregate.
 
+## Throughput measurement method (Tables 2 & 3)
+
+The rate sweep (`run-sweep.sh`) characterizes throughput two ways, because a
+single fixed-rate number is misleading on a capacity-limited host:
+
+- **Sustained throughput (fixed-load, closed-loop).** Caliper holds a small
+  in-flight backlog (`transactionLoad`) and self-adjusts the send rate to the
+  maximum the system can actually commit. This yields the honest "maximum
+  sustained throughput" figure with stable latency, and — unlike open-loop
+  load — it cannot drive the system into congestion collapse. Reported as the
+  `*-sustained` scenarios.
+- **Saturation curve (fixed-rate, open-loop).** A sweep of fixed offered rates
+  that brackets the knee (writes 10–50 TPS; reads 200–600 TPS), so throughput
+  can be shown rising, plateauing, and then latency degrading once offered load
+  exceeds capacity. This is what makes the abstract's "rises, peaks, plateaus"
+  wording (reviewer item 11) a measured statement.
+
+**Round duration.** Rounds run for 60 s. These workloads reach steady state
+within seconds (reads hit their target rate immediately; fixed-load stabilizes
+its backlog in the first few seconds; writes saturate at once), so 60 s × 10
+runs gives stable statistics without wasting hours per point. Longer rounds
+were verified to change the steady-state means by less than run-to-run
+variance.
+
+> Note on hardware: throughput figures are specific to the evaluation VM. On a
+> burstable instance (e.g. Azure B4as_v2, 40% sustained-CPU baseline), the
+> fixed-load sustained numbers are the meaningful capacity figure; fixed-rate
+> points far above the knee mainly demonstrate the onset of congestion and are
+> reported to show *where* saturation occurs, not as achievable throughput.
+
 ## Tail latency (reviewer item 3)
 
 Caliper's HTML report only exposes min/avg/max latency. The workloads
@@ -119,12 +149,30 @@ matching the "Raft Orderers" architecture figure. All three run on a single
 host, so this provides crash tolerance of the ordering *process*, not of the
 machine; single-host deployment remains a stated limitation.
 
-## What is not covered here
+## Off-chain file storage: out of scope (reviewer item 10)
 
-- **Off-chain file storage** (upload/download of medical files) is
-  benchmarked separately by `experiments/file-storage/`, not by the Caliper
-  suite: Caliper drives the chaincode, while files travel through the API
-  and object storage without touching the ledger.
-- **Cost accounting** (reviewer item 9) is a deployment property (VM pricing
-  × the resource envelope measured above); the resource CSVs provide the
-  sizing inputs.
+Large medical files are stored off-chain in object storage; only a SHA-256
+content hash is anchored on the ledger. **This path is deliberately excluded
+from the performance evaluation**, and the paper states so explicitly rather
+than leaving it implied. The reasons:
+
+- The benchmark isolates the *consent-ledger* subsystem — the paper's
+  contribution. File transfer performance is a property of the object store and
+  the network link, not of Fabric, and would confound the ledger numbers.
+- The upload/download path runs entirely through the application tier
+  (`experiments/file-storage/` exercises it), which has open hardening issues
+  documented in the code review; benchmarking it would measure the prototype
+  API, not the consent architecture.
+
+What *is* evaluated is the on-chain anchor that makes off-chain tampering
+detectable: record creation (which writes the `fileHash`) is part of the
+write workload. A tooling harness for the file path exists in
+`experiments/file-storage/` for future work, but its numbers are not reported.
+
+## Cost accounting (reviewer item 9)
+
+Cost is a deployment property: VM hourly price × wall-clock, plus the resource
+envelope measured above (which justifies the VM size). The evaluation records
+the VM SKU and its published hourly rate, the total run hours, and a projected
+monthly cost, contrasted with a naive multi-node estimate. The resource CSVs
+and figures provide the sizing evidence.
