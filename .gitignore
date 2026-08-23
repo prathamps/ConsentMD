@@ -199,3 +199,6 @@ experiments/*/node_modules/
 paper/figures/*.png
 paper/figures/*.pdf
 paper/figures/__pycache__/
+
+# Manuscript sources (kept local, not tracked)
+report/
