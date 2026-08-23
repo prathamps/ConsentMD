@@ -127,9 +127,16 @@ docker build -t "$CC_IMAGE" "$BUILD" >/dev/null
 log "Chaincode image built"
 
 docker rm -f "$CC_CONTAINER" >/dev/null 2>&1 || true
+# Optional resource constraints for a controlled benchmark envelope: pin the
+# chaincode service to the same CPU cores as the rest of the SUT.
+CCAAS_CPUSET="${CCAAS_CPUSET:-}"
+CCAAS_MEM="${CCAAS_MEM:-}"
+CONSTRAIN_ARGS=()
+[ -n "$CCAAS_CPUSET" ] && CONSTRAIN_ARGS+=(--cpuset-cpus "$CCAAS_CPUSET")
+[ -n "$CCAAS_MEM" ] && CONSTRAIN_ARGS+=(--memory "$CCAAS_MEM")
 docker run -d --name "$CC_CONTAINER" --network "$FABRIC_NETWORK" \
-	-e CHAINCODE_ID="$PKG_ID" "$CC_IMAGE" >/dev/null
-log "Chaincode server running as $CC_CONTAINER on $FABRIC_NETWORK"
+	"${CONSTRAIN_ARGS[@]}" -e CHAINCODE_ID="$PKG_ID" "$CC_IMAGE" >/dev/null
+log "Chaincode server running as $CC_CONTAINER on $FABRIC_NETWORK${CCAAS_CPUSET:+ (cpuset=$CCAAS_CPUSET)}"
 
 # --------------------------------------------------------------------------
 # 5. Register CouchDB state-DB indexes (both peers' state DBs)

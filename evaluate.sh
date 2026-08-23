@@ -41,6 +41,7 @@ RUNS=10
 BENCHMARKS="consent-granting record-access consent-revocation mixed-workload"
 SKIP_NETWORK=false
 WITH_API=false
+CONSTRAIN=""        # e.g. "0-3": pin the Fabric SUT to these CPU cores for a controlled envelope
 SWEEP_DURATION=""   # seconds per sweep round; empty = run-sweep.sh default (300)
 STAMP="$(date +%Y%m%d_%H%M%S)"
 RESULTS_DIR="$REPO/evaluation-results/$STAMP"
@@ -50,6 +51,7 @@ while [ $# -gt 0 ]; do
 		--install) DO_INSTALL=true; shift ;;
 		--quick) QUICK=true; RUNS=1; shift ;;
 		--paper) PAPER=true; shift ;;
+		--constrain) CONSTRAIN="$2"; shift 2 ;;
 		--sweep-duration) SWEEP_DURATION="$2"; shift 2 ;;
 		--runs) RUNS="$2"; shift 2 ;;
 		--benchmarks) BENCHMARKS="$2"; shift 2 ;;
@@ -64,6 +66,22 @@ done
 mkdir -p "$RESULTS_DIR"
 MASTER_LOG="$RESULTS_DIR/evaluate.log"
 exec > >(tee -a "$MASTER_LOG") 2>&1
+
+# ---- resource-constraint envelope (--constrain "0-3") ---------------------
+# Pin the Fabric SUT to the given CPU cores and run the load generator on the
+# complementary cores, for a controlled, reproducible throughput measurement.
+COMPOSE_MAIN=(docker compose)
+CONSTRAIN_NOTE="none (host default)"
+if [ -n "$CONSTRAIN" ]; then
+	COMPOSE_MAIN=(docker compose -f docker-compose.yaml -f docker-compose.limits.yaml)
+	export CCAAS_CPUSET="$CONSTRAIN" CCAAS_MEM="${CCAAS_MEM:-1g}"
+	# Load generator gets the cores above the SUT's highest pinned core.
+	SUT_MAX="${CONSTRAIN##*-}"; NCPU="$(nproc)"
+	if [ "$SUT_MAX" -lt "$((NCPU - 1))" ] 2>/dev/null; then
+		export CONSENTMD_TASKSET="$((SUT_MAX + 1))-$((NCPU - 1))"
+	fi
+	CONSTRAIN_NOTE="SUT pinned to cores ${CONSTRAIN}; load gen on cores ${CONSENTMD_TASKSET:-shared}; mem caps per docker-compose.limits.yaml"
+fi
 
 # ---- helpers --------------------------------------------------------------
 BLUE='\033[0;34m'; GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -82,6 +100,7 @@ chaincode_up() {
 
 echo "ConsentMD evaluation — $STAMP"
 echo "profile: $([ "$QUICK" = true ] && echo quick || echo paper) | runs=$RUNS | results=$RESULTS_DIR"
+echo "resource envelope: $CONSTRAIN_NOTE"
 
 # ---- 0. preflight ---------------------------------------------------------
 banner "Preflight"
@@ -113,7 +132,7 @@ else
 		( cd "$ARTIFACTS/channel/create-certificate-with-ca" && ./create-certificate-with-ca.sh )
 	fi
 	( cd "$ARTIFACTS/channel" && ./create-artifacts.sh )
-	( cd "$ARTIFACTS" && docker compose up -d )
+	( cd "$ARTIFACTS" && "${COMPOSE_MAIN[@]}" up -d )
 	sleep 12
 	( cd "$SCRIPTS" && ./createChannel.sh )
 	end_phase network
@@ -237,6 +256,8 @@ fi
 	echo "# ConsentMD evaluation results — $STAMP"
 	echo
 	echo "Profile: $([ "$QUICK" = true ] && echo quick || echo paper) · benchmark runs: $RUNS"
+	echo
+	echo "Resource envelope: $CONSTRAIN_NOTE"
 	echo
 	echo "## Where each artifact lives"
 	echo "- \`benchmarks/summary.md\` — throughput mean±std, p50/p95/p99, dataset sizes, failure counts"

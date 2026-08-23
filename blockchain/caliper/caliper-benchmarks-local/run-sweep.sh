@@ -104,13 +104,22 @@ $4
 EOF
 }
 
+# When the SUT is pinned to a CPU subset (evaluate.sh --constrain), the load
+# generator is pinned to the COMPLEMENTARY cores via $CONSENTMD_TASKSET so it
+# never competes with the system under test for CPU.
+TASKSET_PREFIX=()
+if [ -n "${CONSENTMD_TASKSET:-}" ] && command -v taskset >/dev/null 2>&1; then
+	TASKSET_PREFIX=(taskset -c "$CONSENTMD_TASKSET")
+	echo "load generator pinned to cores: $CONSENTMD_TASKSET"
+fi
+
 run_scenario() {
 	local scenario="$1" module="$2" rblock="$3" args="$4"
 	for run in $(seq 1 "$RUNS"); do
 		export CONSENTMD_RUN_LABEL="${scenario}.run${run}"
 		echo "--- $scenario  run $run/$RUNS  ($(date -u +%H:%M:%SZ)) ---"
 		write_config "$scenario" "$module" "$rblock" "$args"
-		npx caliper launch manager \
+		"${TASKSET_PREFIX[@]}" npx caliper launch manager \
 			--caliper-workspace ./ \
 			--caliper-networkconfig "$NETWORK_CONFIG" \
 			--caliper-benchconfig "$TMP_CFG" \

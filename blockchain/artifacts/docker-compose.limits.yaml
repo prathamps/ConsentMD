@@ -1,0 +1,42 @@
+# Resource-constraint overlay for a controlled benchmark envelope.
+#
+# Apply with:  docker compose -f docker-compose.yaml -f docker-compose.limits.yaml up -d
+# (evaluate.sh --constrain does this automatically.)
+#
+# Purpose: pin the entire System Under Test (the Fabric runtime — orderers,
+# peers, CouchDB) to a FIXED set of 4 physical CPU cores via cgroup cpuset, so
+# throughput is measured on a well-defined, non-burstable 4-vCPU envelope
+# rather than on "whatever the host happens to give." This is what makes the
+# throughput numbers reproducible and comparable to the paper's 4-vCPU target
+# without depending on a specific cloud SKU.
+#
+# CPU is the binding resource for this workload; memory is not (the whole stack
+# peaks near ~1.2 GB), so mem_limit values are set generously — present to make
+# the envelope explicit, not to throttle. The CCaaS container is constrained
+# separately by deploy-chaincode-ccaas.sh (CCAAS_CPUSET / CCAAS_MEM).
+#
+# The Caliper load generator runs OUTSIDE this cpuset (evaluate.sh pins it to
+# the remaining cores) so the driver never steals SUT capacity.
+
+services:
+  orderer.example.com:
+    cpuset: "0-3"
+    mem_limit: 512m
+  orderer2.example.com:
+    cpuset: "0-3"
+    mem_limit: 512m
+  orderer3.example.com:
+    cpuset: "0-3"
+    mem_limit: 512m
+  couchdb0:
+    cpuset: "0-3"
+    mem_limit: 1g
+  couchdb1:
+    cpuset: "0-3"
+    mem_limit: 1g
+  peer0.org1.example.com:
+    cpuset: "0-3"
+    mem_limit: 1g
+  peer0.org2.example.com:
+    cpuset: "0-3"
+    mem_limit: 1g
