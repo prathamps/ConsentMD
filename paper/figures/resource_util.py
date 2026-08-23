@@ -104,11 +104,12 @@ def main():
     for ax in (ax1, ax2):
         ax.grid(True, linewidth=0.3, alpha=0.6)
         ax.margins(x=0.01)
-    ax1.legend(fontsize=8.5, ncols=ncol, frameon=False, loc="upper center")
-    cap = "Container CPU (top) and memory (bottom) during the benchmark sweep"
-    if interval:
-        cap += f"  (docker stats, {interval:.0f} s effective interval; {SMOOTH}-sample rolling mean)"
-    ax1.set_title(cap, fontsize=10.5)
+    # A little headroom so no series touches the top border, and a single legend
+    # placed ABOVE the top panel (outside the data area) so nothing overlaps.
+    ax1.set_ymargin(0.12)
+    ax1.autoscale(axis="y")
+    ax1.legend(fontsize=8.5, ncols=ncol, frameon=False,
+               loc="lower center", bbox_to_anchor=(0.5, 1.02))
     fig.tight_layout()
     for ext in ("pdf", "png"):
         fig.savefig(f"{out}.{ext}", dpi=DPI, bbox_inches="tight")
