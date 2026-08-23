@@ -36,11 +36,13 @@ def main():
     csv_path, out = sys.argv[1], sys.argv[2]
     s = load(csv_path)
     t0 = min(v["t"][0] for v in s.values() if v["t"])
-    interval = None
+    # Effective sampling interval = median of all inter-sample gaps (robust to
+    # the occasional scheduling jitter under load), not just the first gap.
+    deltas = []
     for v in s.values():
-        if len(v["t"]) > 1:
-            interval = (v["t"][1] - v["t"][0]).total_seconds()
-            break
+        ts = sorted(v["t"])
+        deltas += [(b - a).total_seconds() for a, b in zip(ts, ts[1:])]
+    interval = sorted(deltas)[len(deltas) // 2] if deltas else None
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 7), sharex=True)
     for name in sorted(s):

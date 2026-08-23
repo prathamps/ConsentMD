@@ -99,9 +99,8 @@ def main():
     arrow(ax, (50, 28), (50, 24))                       # peer1 -> couch1
     arrow(ax, (78, 28), (78, 24))                       # peer2 -> couch2
     arrow(ax, (62, 33), (66, 33), style="<|-|>")        # peer gossip
-    # Submit-to-ordering flow: a single clean connector down the middle gutter,
-    # avoiding the CouchDB boxes (the italic caption states the relationship).
-    arrow(ax, (64, 17), (64, 13), ls=(0, (4, 3)))
+    # Submit-to-ordering flow is stated by the italic caption below the peers;
+    # no connector is drawn, to keep the ordering caption unobstructed.
 
     fig.suptitle("ConsentMD deployment architecture", fontsize=13, fontweight="bold", y=0.98)
     fig.tight_layout(rect=(0, 0, 1, 0.96))
