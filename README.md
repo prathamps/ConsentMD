@@ -2,6 +2,8 @@
 
 ConsentMD brings the "Consentio" research model to life: patients stay in control of who reads their medical records, every grant/revoke is immutably logged, and providers integrate through a familiar REST + React stack. This repository contains the full implementation – Fabric network, chaincode, API, React client, automation scripts, and Caliper performance harness – used to validate the architecture on a low-cost Azure VM.
 
+> **Paper:** Pratham P S *et al.*, "ConsentMD: a single-VM Hyperledger Fabric consent architecture for telemedicine," *Engineering Research Express* **8** 215236 (2026). [doi:10.1088/2631-8695/aebcc4](https://iopscience.iop.org/article/10.1088/2631-8695/aebcc4)
+
 ---
 
 ## Table of Contents
@@ -16,6 +18,8 @@ ConsentMD brings the "Consentio" research model to life: patients stay in contro
 8. [Benchmarking with Hyperledger Caliper](#benchmarking-with-hyperledger-caliper)
 9. [Performance Takeaways vs. Consentio](#performance-takeaways-vs-consentio)
 10. [Troubleshooting & Tips](#troubleshooting--tips)
+11. [Citation](#citation)
+12. [License](#license)
 
 ---
 
@@ -273,3 +277,30 @@ throughput, tune block parameters/endorsement or scale out.
 - Hyperledger Caliper Docs: [https://hyperledger.github.io/caliper](https://hyperledger.github.io/caliper)
 
 For architectural deep dives, open `blockchain/README.md` (Fabric network) and the API/client READMEs for service-level details.
+
+---
+
+## Citation
+
+This repository accompanies the following open-access paper. If you use ConsentMD in your work, please cite it:
+
+> Pratham P S, Shubham Sharma, Prastab Mukhopadhyay, Sandhya Parasnath Dubey, Tyson Baptist D Cunha and Shailendra Kumar Tiwari, "ConsentMD: a single-VM Hyperledger Fabric consent architecture for telemedicine," *Engineering Research Express* **8** 215236 (2026). [https://doi.org/10.1088/2631-8695/aebcc4](https://iopscience.iop.org/article/10.1088/2631-8695/aebcc4)
+
+```bibtex
+@article{pratham2026consentmd,
+  title   = {ConsentMD: a single-VM Hyperledger Fabric consent architecture for telemedicine},
+  author  = {Pratham P S and Sharma, Shubham and Mukhopadhyay, Prastab and Dubey, Sandhya Parasnath and D Cunha, Tyson Baptist and Tiwari, Shailendra Kumar},
+  journal = {Engineering Research Express},
+  volume  = {8},
+  number  = {21},
+  pages   = {215236},
+  year    = {2026},
+  doi     = {10.1088/2631-8695/aebcc4}
+}
+```
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE).
